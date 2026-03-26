@@ -1,0 +1,646 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
+
+interface Profile {
+  // Basic Information
+  name: string;
+  gender: string;
+  age: number;
+  
+  // Body Measurements
+  height: string;
+  currentWeight: number;
+  targetWeight: number;
+  bodyFat: number;
+  preferredUnit: string;
+  
+  // Fitness Goals
+  primaryGoal: string;
+  targetDate: string;
+  
+  // Activity Level
+  activityLevel: string;
+  
+  // Nutrition Preferences
+  dailyCalorieGoal: number;
+  dietaryType: string;
+  foodAllergies: string;
+  mealsPerDay: number;
+  
+  // Fitness Background
+  experienceLevel: string;
+  preferredWorkoutType: string;
+  availableEquipment: string;
+  workoutDaysPerWeek: number;
+  workoutDuration: string;
+  
+  // Health Information
+  injuries: string;
+  medicalConditions: string;
+}
+
+export default function Profile() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [profile, setProfile] = useState<Profile>({
+    // Basic Information
+    name: user?.name || "",
+    gender: "",
+    age: 0,
+    
+    // Body Measurements
+    height: "",
+    currentWeight: 0,
+    targetWeight: 0,
+    bodyFat: 0,
+    preferredUnit: "imperial",
+    
+    // Fitness Goals
+    primaryGoal: "",
+    targetDate: "",
+    
+    // Activity Level
+    activityLevel: "",
+    
+    // Nutrition Preferences
+    dailyCalorieGoal: 0,
+    dietaryType: "no-restriction",
+    foodAllergies: "",
+    mealsPerDay: 3,
+    
+    // Fitness Background
+    experienceLevel: "",
+    preferredWorkoutType: "",
+    availableEquipment: "",
+    workoutDaysPerWeek: 3,
+    workoutDuration: "45min",
+    
+    // Health Information
+    injuries: "",
+    medicalConditions: "",
+  });
+
+  const [isEditing, setIsEditing] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(true);
+  const [calculatedBMI, setCalculatedBMI] = useState<number>(0);
+  const [calculatedCalories, setCalculatedCalories] = useState<number>(0);
+
+  // Load existing profile if available
+  useEffect(() => {
+    const savedProfile = localStorage.getItem("userProfile");
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        setProfile(parsed);
+        setIsNewUser(false);
+        setIsEditing(false);
+      } catch {
+        // Keep default profile
+      }
+    }
+  }, []);
+
+  // Calculate BMI and recommended calories
+  useEffect(() => {
+    if (profile.currentWeight > 0 && profile.height) {
+      // Simple BMI calculation (assuming imperial units for now)
+      const heightInInches = parseFloat(profile.height.replace(/['"a-z]/gi, "")) || 0;
+      if (heightInInches > 0) {
+        const bmi = (profile.currentWeight / (heightInInches * heightInInches)) * 703;
+        setCalculatedBMI(Math.round(bmi * 10) / 10);
+      }
+    }
+    
+    // Calculate recommended calories based on profile
+    if (profile.age > 0 && profile.currentWeight > 0 && profile.activityLevel) {
+      const activityMultipliers: { [key: string]: number } = {
+        "sedentary": 1.2,
+        "lightly-active": 1.375,
+        "moderately-active": 1.55,
+        "very-active": 1.725,
+        "athlete": 1.9,
+      };
+      
+      // Simplified BMR calculation (Mifflin-St Jeor)
+      let bmr = 10 * (profile.currentWeight * 0.453592) + 6.25 * 170 - 5 * profile.age;
+      if (profile.gender === "male") bmr += 5;
+      if (profile.gender === "female") bmr -= 161;
+      
+      const tdee = bmr * (activityMultipliers[profile.activityLevel] || 1.2);
+      
+      // Adjust based on goal
+      let targetCalories = tdee;
+      if (profile.primaryGoal === "lose-weight") targetCalories -= 500;
+      if (profile.primaryGoal === "build-muscle") targetCalories += 300;
+      
+      setCalculatedCalories(Math.round(targetCalories));
+    }
+  }, [profile]);
+
+  const handleSave = () => {
+    if (isEditing) {
+      // Validate required fields
+      if (!profile.name || !profile.age || !profile.currentWeight || !profile.primaryGoal || !profile.activityLevel) {
+        alert("Please fill in all required fields:\n• Name\n• Age\n• Gender\n• Current Weight\n• Primary Goal\n• Activity Level");
+        return;
+      }
+      
+      // Auto-set calorie goal if not manually set
+      if (profile.dailyCalorieGoal === 0 && calculatedCalories > 0) {
+        const updatedProfile = { ...profile, dailyCalorieGoal: calculatedCalories };
+        setProfile(updatedProfile);
+        localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+      } else {
+        localStorage.setItem("userProfile", JSON.stringify(profile));
+      }
+      
+      setIsEditing(false);
+      
+      // Show success message and redirect all users to dashboard
+      if (isNewUser) {
+        alert("🎉 Profile completed successfully!\n\nYour AI coach is now ready with personalized recommendations. Redirecting to dashboard...");
+        setIsNewUser(false); // Mark user as no longer new
+        setTimeout(() => router.push("/dashboard"), 1500);
+      } else {
+        alert("✅ Profile updated successfully!\n\nRedirecting to dashboard...");
+        setTimeout(() => router.push("/dashboard"), 1500);
+      }
+    } else {
+      setIsEditing(true);
+    }
+  };
+
+  const handleInputChange = (field: keyof Profile, value: any) => {
+    setProfile((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const InputField = ({
+    label,
+    field,
+    type = "text",
+    disabled = false,
+    placeholder = "",
+    required = false,
+  }: {
+    label: string;
+    field: keyof Profile;
+    type?: string;
+    disabled?: boolean;
+    placeholder?: string;
+    required?: boolean;
+  }) => {
+    // For number fields, show empty string instead of 0
+    const displayValue = type === "number" && profile[field] === 0 ? "" : profile[field];
+    
+    return (
+      <div>
+        <label className="block text-sm font-semibold text-slate-300 mb-2">
+          {label} {required && <span className="text-red-400">*</span>}
+        </label>
+        <input
+          type={type}
+          value={displayValue}
+          onChange={(e) =>
+            handleInputChange(
+              field,
+              type === "number" ? (e.target.value === "" ? 0 : parseFloat(e.target.value)) : e.target.value
+            )
+          }
+          disabled={!isEditing || disabled}
+          placeholder={isEditing ? placeholder : ""}
+          className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/30 disabled:bg-slate-800 disabled:text-slate-400 disabled:cursor-not-allowed disabled:border-slate-700 transition-all"
+        />
+      </div>
+    );
+  };
+
+  const TextAreaField = ({
+    label,
+    field,
+    placeholder = "",
+    rows = 4,
+  }: {
+    label: string;
+    field: keyof Profile;
+    placeholder?: string;
+    rows?: number;
+  }) => (
+    <div className="relative">
+      <label className="block text-sm font-semibold text-slate-300 mb-2">
+        {label}
+      </label>
+      <textarea
+        value={profile[field] as string}
+        onChange={(e) => handleInputChange(field, e.target.value)}
+        disabled={!isEditing}
+        placeholder={isEditing ? placeholder : ""}
+        rows={rows}
+        className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/30 disabled:bg-slate-800 disabled:text-slate-400 disabled:cursor-not-allowed disabled:border-slate-700 transition-all resize-y min-h-[100px]"
+      />
+    </div>
+  );
+
+  const SelectField = ({
+    label,
+    field,
+    options,
+    required = false,
+  }: {
+    label: string;
+    field: keyof Profile;
+    options: { value: string; label: string }[];
+    required?: boolean;
+  }) => (
+    <div>
+      <label className="block text-sm font-semibold text-slate-300 mb-2">
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
+      <select
+        value={profile[field]}
+        onChange={(e) => handleInputChange(field, e.target.value)}
+        disabled={!isEditing}
+        className="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/30 disabled:bg-slate-800 disabled:text-slate-400 disabled:cursor-not-allowed disabled:border-slate-700 transition-all"
+      >
+        <option value="" disabled className="text-slate-500">Select {label}</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] w-full py-10 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="w-full max-w-7xl mx-auto">
+        {/* Welcome Banner for New Users */}
+        {isNewUser && isEditing && (
+          <div className="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-orange-600/20 border border-purple-500/30 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-2 flex items-center gap-3">
+                  👋 Welcome to FitCoach AI!
+                </h2>
+                <p className="text-base text-gray-300 mb-3">
+                  Let's set up your personalized fitness profile in just a few steps
+                </p>
+                <div className="flex gap-2 text-3xl">
+                  <span className="animate-bounce">🎯</span>
+                  <span className="animate-bounce" style={{animationDelay: '0.1s'}}>💪</span>
+                  <span className="animate-bounce" style={{animationDelay: '0.2s'}}>🔥</span>
+                  <span className="animate-bounce" style={{animationDelay: '0.3s'}}>🚀</span>
+                </div>
+              </div>
+              <div className="hidden lg:block text-7xl">
+                👤➜📊
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-10 gap-6 bg-gradient-to-r from-slate-800 to-slate-800/50 p-6 rounded-2xl border border-slate-700">
+          <div className="text-center sm:text-left">
+            <h1 className="text-4xl sm:text-5xl font-bold text-slate-100 flex items-center gap-4 justify-center sm:justify-start">
+              <span className="text-5xl">👤</span>
+              {isNewUser ? "Complete Your Profile" : "Your Fitness Profile"}
+            </h1>
+            <p className="text-slate-400 mt-3 text-base sm:text-lg">
+              {isNewUser ? "Help your AI coach personalize your fitness journey" : "View and update your fitness profile"}
+            </p>
+          </div>
+          <button
+            onClick={handleSave}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-10 py-4 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition-all text-base shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            {isEditing ? "💾 Save Profile" : "✏️ Edit Profile"}
+          </button>
+        </div>
+
+        {/* Profile Completion Benefit */}
+        {!profile.name && isEditing && (
+          <div className="mb-8 bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-l-4 border-blue-500 rounded-xl p-6">
+            <h3 className="text-lg font-bold text-blue-300 mb-2">🎯 Why Complete Your Profile?</h3>
+            <ul className="text-sm text-slate-300 space-y-1">
+              <li>✅ Get personalized workout plans tailored to your fitness level</li>
+              <li>✅ Receive nutrition advice based on your goals and dietary preferences</li>
+              <li>✅ Track progress with accurate BMI and calorie calculations</li>
+              <li>✅ AI Coach provides smarter recommendations from day one</li>
+            </ul>
+          </div>
+        )}
+
+        {/* Section 1: Basic Information */}
+        <div className="bg-slate-800 rounded-2xl shadow-xl p-8 mb-8 border border-slate-700 hover:border-slate-600 transition-all">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+              <span className="text-3xl">👤</span> Basic Information
+            </h2>
+            <p className="text-slate-400 text-sm mt-2">Your fundamental details for personalized coaching</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <InputField label="Full Name" field="name" placeholder="John Doe" required />
+            <SelectField
+              label="Gender"
+              field="gender"
+              required
+              options={[
+                { value: "male", label: "Male" },
+                { value: "female", label: "Female" },
+                { value: "other", label: "Other" },
+              ]}
+            />
+            <InputField label="Age" field="age" type="number" placeholder="25" required />
+          </div>
+        </div>2xl shadow-xl p-8 mb-8 border border-slate-700 hover:border-slate-600 transition-all">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+              <span className="text-3xl">📏</span> Body Measurements
+            </h2>
+            <p className="text-slate-400 text-sm mt-2">Track your physical metrics and progress</p>
+          </divlassName="bg-slate-800 rounded-xl shadow-lg p-6 mb-6 border border-slate-700">
+          <h2 className="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
+            <span>📏</span> Body Measurements
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <SelectField
+              label="Preferred Unit"
+              field="preferredUnit"
+              options={[
+                { value: "imperial", label: "Imperial (lbs, ft)" },
+                { value: "metric", label: "Metric (kg, cm)" },
+              ]}
+            />
+            <InputField 
+              label={profile.preferredUnit === "metric" ? "Height (cm)" : "Height"} 
+              field="height" 
+              placeholder="5'10 or 178cm" 
+              required 
+            />
+            <InputField 
+              label={profile.preferredUnit === "metric" ? "Current Weight (kg)" : "Current Weight (lbs)"} 
+              field="currentWeight" 
+              type="number" 
+              placeholder="150" 
+              required 
+            />
+            <InputField 
+              label={profile.preferredUnit === "metric" ? "Target Weight (kg)" : "Target Weight (lbs)"}
+              field="targetWeight" 
+              type="number" 
+              placeholder="140" 
+            />
+            <InputField 
+              label="Body Fat % (optional)" 
+              field="bodyFat" 
+              type="number" 
+              placeholder="18" 
+            />
+            <div className="flex items-end">
+              <div className="bg-green-900/30 rounded-lg p-3 w-full border border-green-700/50">
+                <p className="text-xs text-slate-400 mb-1">Calculated BMI</p>
+                <p className="text-2xl font-bold text-green-400">
+                  {calculatedBMI > 0 ? calculatedBMI : "--"}
+                </p>
+              </div>2xl shadow-xl p-8 mb-8 border border-slate-700 hover:border-slate-600 transition-all">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+              <span className="text-3xl">🎯</span> Fitness Goals
+            </h2>
+            <p className="text-slate-400 text-sm mt-2">Set your targets and timeline for achievement</p>
+          </div
+
+        {/* Section 3: Fitness Goals */}
+        <div className="bg-slate-800 rounded-xl shadow-lg p-6 mb-6 border border-slate-700">
+          <h2 className="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
+            <span>🎯</span> Fitness Goals
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SelectField
+              label="Primary Goal"
+              field="primaryGoal"
+              required
+              options={[
+                { value: "lose-weight", label: "🔥 Lose Weight" },
+                { value: "build-muscle", label: "💪 Build Muscle" },
+                { value: "improve-endurance", label: "🏃 Improve Endurance" },
+                { value: "stay-active", label: "✨ Stay Active / Maintain" },
+                { value: "improve-flexibility", label: "🧘 Improve Flexibility" },
+              ]}
+            />
+            <InputField 
+              label="Target Date (optional)" 
+              field="targetDate" 
+              type="date"
+              placeholder="mm/dd/yyyy"2xl shadow-xl p-8 mb-8 border border-slate-700 hover:border-slate-600 transition-all">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+              <span className="text-3xl">🏃</span> Activity Level
+            </h2>
+            <p className="text-slate-400 text-sm mt-2">Describe your current level of physical activity</p>
+          </div
+
+        {/* Section 4: Activity Level */}
+        <div className="bg-slate-800 rounded-xl shadow-lg p-6 mb-6 border border-slate-700">
+          <h2 className="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
+            <span>🏃</span> Activity Level
+          </h2>
+          <div className="grid grid-cols-1 gap-6">
+            <SelectField
+              label="Current Activity Level"
+              field="activityLevel"
+              required
+              options={[
+                { value: "sedentary", label: "Sedentary (little/no exercise)" },
+                { value: "lightly-active", label: "Lightly Active (1-3 days/week)" },
+                { value: "moderately-active",2xl shadow-xl p-8 mb-8 border border-slate-700 hover:border-slate-600 transition-all">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+              <span className="text-3xl">🥗</span> Nutrition Preferences
+            </h2>
+            <p className="text-slate-400 text-sm mt-2">Customize your diet plans and calorie targets</p>
+          </div]}
+            />
+          </div>
+        </div>
+
+        {/* Section 5: Nutrition Preferences */}
+        <div className="bg-slate-800 rounded-xl shadow-lg p-6 mb-6 border border-slate-700">
+          <h2 className="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
+            <span>🥗</span> Nutrition Preferences
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <InputField 
+                label="Daily Calorie Goal" 
+                field="dailyCalorieGoal" 
+                type="number" 
+                placeholder="2000" 
+              />
+              {calculatedCalories > 0 && (
+                <p className="text-xs text-green-400 mt-1">
+                  💡 Recommended: {calculatedCalories} cal/day based on your profile
+                </p>
+              )}
+            </div>
+            <SelectField
+              label="Dietary Type"
+              field="dietaryType"
+             div className="md:col-span-2">
+              <TextAreaField 
+                label="Food Allergies (optional)" 
+                field="foodAllergies" 
+                placeholder="List any food allergies or intolerances (e.g., peanuts, shellfish, dairy, gluten)"
+                rows={3}
+              />
+            </div   { value: "keto", label: "🥓 Keto" },
+                { value: "gluten-free", label: "🌾 Gluten-Free" },
+                { value: "paleo", label: "🍖 Paleo" },
+              ]}
+            />
+            <TextAreaField 
+              label="Food Allergies (optional)" 
+              field="foodAllergies" 
+              placeholder="e.g., peanuts, shellfish, dairy"
+            />
+            <InputField 
+              label="Meals Per Day" 
+              field="mealsPerDay" 
+              type="number" 
+              placeholder="3" 
+            />
+          </div>
+        </div>
+
+        {/* Section 6: Fitness Background */}
+        <div className="bg-slate-800 rounded-2xl shadow-xl p-8 mb-8 border border-slate-700 hover:border-slate-600 transition-all">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+              <span className="text-3xl">🏋️</span> Fitness Background
+            </h2>
+            <p className="text-slate-400 text-sm mt-2">Your experience level and workout preferences</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <SelectField
+              label="Experience Level"
+              field="experienceLevel"
+              required
+              options={[
+                { value: "beginner", label: "🌱 Beginner" },
+                { value: "intermediate", label: "💪 Intermediate" },
+                { value: "advanced", label: "🏆 Advanced" },
+              ]}
+            />
+            <SelectField
+              label="Preferred Workout Type"
+              field="preferredWorkoutType"
+              options={[
+                { value: "cardio", label: "🏃 Cardio" },
+                { value: "strength", label: "💪 Strength Training" },
+                { value: "yoga", label: "🧘 Yoga" },
+                { value: "mixed", label: "🔀 Mixed" },
+                { value: "sports", label: "⚽ Sports" },
+              ]}
+            />
+            <SelectField
+              label="Available Equipment"
+              field="availableEquipment"
+              options={[
+                { value: "none", label: "None (Bodyweight)" },
+                { value: "dumbbells", label: "🏋️ Dumbbells" },
+                { value: "home-gym", label: "🏠 Home Gym" },
+                { value: "full-gym", label: "🏢 Full Gym Access" },
+              ]}
+            />
+            <InputField 
+              label="Workout Days Per Week" 
+              field="workoutDaysPerWeek" 
+              type="number" 
+              placeholder="3" 
+            />
+            <SelectField
+              label="Preferred Workout Duration"
+              field="workoutDuration"
+              options={[
+                { value: "30min", label: "30 minutes" },
+                { value: "45min", label: "45 minutes" },
+                { value: "60min", label: "1 hour" },
+                { value: "90min", label: "90 minutes" },
+              ]}
+            />
+          </div>
+        </div>
+
+        {/* Section 7: Health Information */}
+        <div className="bg-slate-800 rounded-2xl shadow-xl p-8 mb-8 border border-slate-700 hover:border-slate-600 transition-all">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+              <span className="text-3xl">⚕️</span> Health Information
+            </h2>
+            <p className="text-slate-400 text-sm mt-2">Important health details for safer recommendations</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <TextAreaField 
+              label="Injuries or Physical Limitations (optional)" 
+              field="injuries" 
+              placeholder="Describe any injuries, pain, or physical limitations (e.g., lower back pain, knee injury, shoulder mobility issues)"
+              rows={4}
+            />
+            <TextAreaField 
+              label="Medical Conditions (optional)" 
+              field="medicalConditions" 
+              placeholder="List any relevant medical conditions (e.g., diabetes, hypertension, asthma, heart condition)"
+              rows={4}
+            />
+          </div>
+          <p className="text-xs text-slate-400 mt-6 bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+            <span className="font-semibold text-green-400">🔒 Privacy:</span> Your health information is private and secure, used only to provide safer, personalized recommendations.
+          </p>2xl shadow-xl p-8 border-2 border-green-700/50">
+            <h2 className="text-2xl font-bold text-slate-100 mb-6 text-center flex items-center justify-center gap-3">
+              <span className="text-3xl">📊</span>
+        {/* Profile Summary */}
+        {(profile.name || profile.currentWeight > 0) && (
+          <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 rounded-xl p-6 border border-green-700/50">
+            <h2 className="text-xl font-bold text-slate-100 mb-4 text-center">
+              📊 Your Profile Summary
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <div className="bg-slate-800/70 rounded-lg p-4 text-center border border-slate-700">
+                <p className="text-slate-400 text-xs mb-1">Name</p>
+                <p className="text-base font-semibold text-slate-100">{profile.name || "--"}</p>
+              </div>
+              <div className="bg-slate-800/70 rounded-lg p-4 text-center border border-slate-700">
+                <p className="text-slate-400 text-xs mb-1">Age</p>
+                <p className="text-base font-semibold text-slate-100">{profile.age || "--"}</p>
+              </div>
+              <div className="bg-slate-800/70 rounded-lg p-4 text-center border border-slate-700">
+                <p className="text-slate-400 text-xs mb-1">Current Weight</p>
+                <p className="text-base font-semibold text-slate-100">{profile.currentWeight || "--"} {profile.preferredUnit === "metric" ? "kg" : "lbs"}</p>
+              </div>
+              <div className="bg-slate-800/70 rounded-lg p-4 text-center border border-slate-700">
+                <p className="text-slate-400 text-xs mb-1">BMI</p>
+                <p className="text-base font-semibold text-green-400">{calculatedBMI > 0 ? calculatedBMI : "--"}</p>
+              </div>
+              <div className="bg-slate-800/70 rounded-lg p-4 text-center border border-slate-700">
+                <p className="text-slate-400 text-xs mb-1">Daily Cal Goal</p>
+                <p className="text-base font-semibold text-amber-400">{profile.dailyCalorieGoal || calculatedCalories || "--"}</p>
+              </div>
+            </div>
+          </div>
+        )}6 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border-l-4 border-blue-500 rounded-xl shadow-lg">
+          <p className="text-slate-300 text-base leading-relaxed">
+            <strong className="text-blue-300"tion Note */}
+        <div className="mt-8 p-5 bg-blue-900/30 border-l-4 border-blue-500 rounded-lg">
+          <p className="text-slate-300 text-sm">
+            <strong>💡 Pro Tip:</strong> The more complete your profile, the better your AI coach can personalize workouts, nutrition plans, and track your progress. You can always update your profile later!
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+

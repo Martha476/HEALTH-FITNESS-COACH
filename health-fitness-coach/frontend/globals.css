@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gradient-to-br from-slate-900 to-slate-800 text-white;
+}
+
+.chat-message {
+  @apply p-4 rounded-lg mb-4;
+}
+
+.chat-message.user {
+  @apply bg-primary ml-auto w-fit max-w-xs;
+}
+
+.chat-message.coach {
+  @apply bg-secondary/20 border border-secondary/50 mr-auto w-fit max-w-xs;
+}
+
+.btn-primary {
+  @apply px-4 py-2 bg-primary hover:bg-primary/90 rounded-lg font-semibold transition;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 bg-secondary hover:bg-secondary/90 rounded-lg font-semibold transition;
+}
