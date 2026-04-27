@@ -6,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { recordTokenUsage } from "../../lib/tokenTracking";
 import MessageFeedback from "../components/MessageFeedback";
 import WeatherRecommendations from "../components/WeatherRecommendations";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMicrophone, faMicrophoneSlash, faVolumeUp, faVolumeMute } from "@fortawesome/free-solid-svg-icons";
 
 interface Message {
   id: string;
@@ -48,8 +50,12 @@ export default function AiCoach() {
   const [isLoading, setIsLoading]     = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceModeEnabled, setVoiceModeEnabled] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
   const API_URL   = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const COACH_IMG = "/images/ai-coach-cartoon.jpg";
 
@@ -65,6 +71,63 @@ export default function AiCoach() {
     if (!user) return;
     loadUserProfile();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = true;
+
+        recognitionRef.current.onresult = (event: any) => {
+          let finalTranscript = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            }
+          }
+          if (finalTranscript) {
+            setInputValue((prev) => prev ? prev + " " + finalTranscript : finalTranscript);
+          }
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+
+      synthRef.current = window.speechSynthesis;
+    }
+    
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.abort();
+      if (synthRef.current) synthRef.current.cancel();
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch (e) {
+          console.error("Microphone start error:", e);
+        }
+      } else {
+        alert("Speech recognition is not supported in this browser.");
+      }
+    }
+  };
 
   const loadUserProfile = async () => {
     try {
@@ -168,15 +231,22 @@ export default function AiCoach() {
         { headers: token ? { Authorization: `Bearer ${token}` } : {} }
       );
 
+      const responseText = res.data.response || "I'm here to help with your fitness goals!";
       setMessages((prev) => [
         ...prev,
         {
           id:        (Date.now() + 1).toString(),
           role:      "assistant",
-          content:   res.data.response || "I'm here to help with your fitness goals!",
+          content:   responseText,
           timestamp: new Date(),
         },
       ]);
+
+      if (voiceModeEnabled && synthRef.current) {
+        synthRef.current.cancel(); // Stop current speech if any
+        const utterance = new SpeechSynthesisUtterance(responseText);
+        synthRef.current.speak(utterance);
+      }
 
       // Record token usage
       if (res.data.tokenUsage && user) {
@@ -207,40 +277,60 @@ export default function AiCoach() {
     <div className="min-h-[calc(100vh-4rem)] w-full flex flex-col items-center py-6 px-4 sm:px-6">
       <div className="w-full max-w-2xl flex flex-col" style={{ minHeight: "calc(100vh - 8rem)" }}>
 
-        {/* ── Header — clean, no settings details ─────── */}
-        <div className="mb-4 flex items-center gap-3">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 border-green-500 shrink-0 bg-slate-700">
-            <img
-              src={COACH_IMG}
-              alt="AI Coach"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=200&fit=crop";
-              }}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-100">
-              AI Fitness Coach
-            </h1>
-            <p className="text-slate-400 text-sm mt-0.5">
-              Ask me anything about fitness, workouts, and nutrition
-            </p>
-            {profileLoaded && (
-              <p className="text-sm mt-0.5">
-                {profileName ? (
-                  <span className="text-green-400">
-                    Personalised for {profileName}
-                  </span>
-                ) : (
-                  <span className="text-yellow-400">
-                    Complete your profile for personalised advice
-                  </span>
-                )}
+        {/* ── Header ─────── */}
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 border-green-500 shrink-0 bg-slate-700">
+              <img
+                src={COACH_IMG}
+                alt="AI Coach"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=200&fit=crop";
+                }}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-100">
+                AI Fitness Coach
+              </h1>
+              <p className="text-slate-400 text-sm mt-0.5">
+                Ask me anything about fitness, workouts, and nutrition
               </p>
-            )}
+              {profileLoaded && (
+                <p className="text-sm mt-0.5">
+                  {profileName ? (
+                    <span className="text-green-400">
+                      Personalised for {profileName}
+                    </span>
+                  ) : (
+                    <span className="text-yellow-400">
+                      Complete your profile for personalised advice
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
           </div>
+          
+          <button
+            onClick={() => {
+               setVoiceModeEnabled(!voiceModeEnabled);
+               if (voiceModeEnabled && synthRef.current) synthRef.current.cancel();
+            }}
+            className={`flex flex-col items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-xl border transition-all shrink-0 ${
+              voiceModeEnabled 
+                ? "bg-green-600/20 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]" 
+                : "bg-slate-800 border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+            }`}
+            title={voiceModeEnabled ? "Disable Voice Coach" : "Enable Voice Coach"}
+          >
+            <FontAwesomeIcon icon={voiceModeEnabled ? faVolumeUp : faVolumeMute} className="text-xl sm:text-2xl mb-1" />
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
+              {voiceModeEnabled ? "VOICE ON" : "VOICE OFF"}
+            </span>
+          </button>
         </div>
 
         {/* ── Chat Area ────────────────────────────────── */}
@@ -370,18 +460,35 @@ export default function AiCoach() {
           <WeatherRecommendations />
         </div>
 
-        {/* ── Input Area — no settings info shown ─────── */}
+        {/* ── Input Area ─────── */}
         <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
           <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Ask your fitness coach..."
-              disabled={isLoading}
-              className="flex-1 px-4 py-2.5 bg-slate-700 border border-slate-600 text-slate-100 placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-base disabled:opacity-60"
-            />
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder={isListening ? "Listening..." : "Ask your fitness coach..."}
+                disabled={isLoading}
+                className={`w-full pl-4 pr-12 py-2.5 bg-slate-700 border text-slate-100 placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-base disabled:opacity-60 transition-colors ${
+                  isListening ? "border-red-500/50 bg-slate-700/80" : "border-slate-600"
+                }`}
+              />
+              <button
+                onClick={toggleListening}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md transition-all ${
+                  isListening 
+                    ? "text-red-500 hover:bg-red-500/10" 
+                    : "text-slate-400 hover:text-white hover:bg-slate-600"
+                }`}
+                title="Voice Input"
+              >
+                <div className={isListening ? "animate-pulse" : ""}>
+                  <FontAwesomeIcon icon={isListening ? faMicrophoneSlash : faMicrophone} />
+                </div>
+              </button>
+            </div>
             <button
               onClick={handleSendMessage}
               disabled={isLoading || !inputValue.trim()}

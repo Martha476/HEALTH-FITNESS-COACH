@@ -1,6 +1,6 @@
 """Agent module for Health Fitness Coach"""
 
-from .fitness_agent import create_fitness_coach_graph
+from .fitness_agent import FitnessCoachAgent
 from .tools import (
     generate_workout_plan,
     calculate_nutrition,
@@ -12,7 +12,7 @@ from .memory import MemoryManager
 from .prompts import SYSTEM_PROMPTS
 
 __all__ = [
-    "create_fitness_coach_graph",
+    "FitnessCoachAgent",
     "generate_workout_plan",
     "calculate_nutrition",
     "analyze_progress",

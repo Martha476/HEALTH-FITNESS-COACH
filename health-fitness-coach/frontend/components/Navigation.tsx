@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHome, faRobot, faDumbbell, faUtensils, faChartLine, faUser, faCog, faQuestionCircle, faSignOutAlt, faBars, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -11,14 +13,14 @@ export default function Navigation() {
   const { user, logout } = useAuth();
 
   const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: "📊" },
-    { label: "AI Coach", href: "/ai-coach", icon: "💬" },
-    { label: "Workouts", href: "/workouts", icon: "🏋️" },
-    { label: "Nutrition", href: "/nutrition", icon: "🥗" },
-    { label: "Progress", href: "/progress", icon: "📈" },
-    { label: "Profile", href: "/profile", icon: "👤" },
-    { label: "Settings", href: "/settings", icon: "⚙️" },
-    { label: "Help", href: "/help", icon: "❓" },
+    { label: "Dashboard", href: "/dashboard", icon: faHome },
+    { label: "AI Coach", href: "/ai-coach", icon: faRobot },
+    { label: "Workouts", href: "/workouts", icon: faDumbbell },
+    { label: "Nutrition", href: "/nutrition", icon: faUtensils },
+    { label: "Progress", href: "/progress", icon: faChartLine },
+    { label: "Profile", href: "/profile", icon: faUser },
+    { label: "Settings", href: "/settings", icon: faCog },
+    { label: "Help", href: "/help", icon: faQuestionCircle },
   ];
 
   return (
@@ -27,7 +29,7 @@ export default function Navigation() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl">
-            <span className="text-3xl">🏋️</span>
+            <span className="text-2xl flex items-center"><FontAwesomeIcon icon={faDumbbell} /></span>
             <span>FitCoach AI</span>
           </Link>
 
@@ -43,7 +45,7 @@ export default function Navigation() {
                     : "text-white hover:bg-green-600"
                 }`}
               >
-                <span>{item.icon}</span>
+                <span className="w-4 flex justify-center items-center"><FontAwesomeIcon icon={item.icon} /></span>
                 <span className="text-sm">{item.label}</span>
               </Link>
             ))}
@@ -52,7 +54,7 @@ export default function Navigation() {
                 onClick={logout}
                 className="ml-2 px-3 py-2 rounded-lg text-white hover:bg-red-600/80 transition-colors flex items-center gap-1 text-sm"
               >
-                <span>🚪</span>
+                <span className="w-4 flex justify-center items-center"><FontAwesomeIcon icon={faSignOutAlt} /></span>
                 <span>Logout</span>
               </button>
             )}
@@ -60,11 +62,11 @@ export default function Navigation() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-white p-2 hover:bg-green-600 rounded-lg transition-colors"
+            className="md:hidden text-white p-2 hover:bg-green-600 rounded-lg transition-colors flex items-center justify-center"
             onClick={() => setIsOpen(!isOpen)}
             aria-label={isOpen ? "Close menu" : "Open menu"}
           >
-            <span className="text-2xl">{isOpen ? "✕" : "☰"}</span>
+            <span className="text-xl flex items-center"><FontAwesomeIcon icon={isOpen ? faTimes : faBars} /></span>
           </button>
         </div>
 
@@ -75,22 +77,24 @@ export default function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block px-4 py-2 rounded transition-colors ${
+                className={`block px-4 py-2 flex items-center gap-3 rounded transition-colors ${
                   pathname === item.href
                     ? "bg-white text-green-700 font-semibold"
                     : "text-white hover:bg-green-600"
                 }`}
                 onClick={() => setIsOpen(false)}
               >
-                <span>{item.icon}</span> {item.label}
+                <span className="w-5 flex justify-center text-lg"><FontAwesomeIcon icon={item.icon} /></span>
+                <span>{item.label}</span>
               </Link>
             ))}
             {user && (
               <button
                 onClick={() => { logout(); setIsOpen(false); }}
-                className="block w-full text-left px-4 py-2 rounded text-white hover:bg-red-600/80 transition-colors mt-2"
+                className="block w-full text-left px-4 py-2 flex items-center gap-3 rounded text-white hover:bg-red-600/80 transition-colors mt-2"
               >
-                🚪 Logout
+                <span className="w-5 flex justify-center text-lg"><FontAwesomeIcon icon={faSignOutAlt} /></span>
+                <span>Logout</span>
               </button>
             )}
           </div>

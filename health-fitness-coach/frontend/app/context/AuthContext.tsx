@@ -20,7 +20,12 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<{
+    success: boolean;
+    email: string;
+    requires_verification: boolean;
+    message: string;
+  }>;
   logout: () => void;
   isLoading: boolean;
   getAuthHeaders: () => Record<string, string>;
@@ -162,11 +167,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(err.detail || "Registration failed.");
     }
     const data = await res.json();
-    if (!data.token || !data.user) throw new Error("Invalid server response.");
-
-    USER_SCOPED_KEYS.forEach((k) => localStorage.removeItem(k));
-    persistAuth(data.token, data.user);
-  }, [persistAuth]);
+    
+    // Return registration response with requires_verification flag
+    // The component will handle redirecting to verify-email-check page
+    return {
+      success: data.success,
+      email: data.email,
+      requires_verification: data.requires_verification,
+      message: data.message,
+    };
+  }, []);
 
   const logout = useCallback(async () => {
     if (token) {

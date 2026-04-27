@@ -64,3 +64,23 @@ coverage/
 # Environment
 .env.local
 .env.production.local
+
+# Frontend — unused components
+frontend/app/components/AnalyticsDashboard.tsx
+frontend/app/components/BodyMeasurements.tsx
+frontend/app/components/BarcodeScanner.tsx
+frontend/app/components/CustomWorkout.tsx
+
+frontend/app/components/ProactiveSuggestions.tsx
+frontend/app/components/RecipeSuggestions.tsx
+frontend/app/components/RestTimer.tsx
+frontend/app/components/TemplatesList.tsx
+frontend/app/components/WorkoutRating.tsx
+
+# Backend — unused routes
+backend/api/analytics.py
+backend/api/body_measurements.py
+backend/api/barcode_scanner.py
+
+backend/api/recipes.py
+backend/api/email_utils.py

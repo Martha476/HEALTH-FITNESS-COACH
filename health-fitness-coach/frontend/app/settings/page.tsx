@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { 
-  recordTokenUsage, 
-  clearTokenHistory, 
+import {
+  recordTokenUsage,
+  clearTokenHistory,
   fetchTokenStatsFromBackend,
   loadTokenStatsFromStorage,
   calculateCost,
@@ -17,7 +17,6 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export const SETTINGS_KEY = "aiCoachSettings";
 
-// ─── Default settings ─────────────────────────────────────────────────────────
 const DEFAULT_SETTINGS = {
   llm:              "openai",
   temperature:      0.7,
@@ -32,10 +31,8 @@ const DEFAULT_SETTINGS = {
   theme:            "dark",
   language:         "en",
 };
-
 type AgentSettings = typeof DEFAULT_SETTINGS;
 
-// ─── Tools ────────────────────────────────────────────────────────────────────
 const AVAILABLE_TOOLS = [
   { id: "generate_workout_plan", name: "Workout Plan Generator", desc: "Creates personalised workout plans.", icon: "💪", version: "v1.2" },
   { id: "calculate_nutrition",   name: "Nutrition Calculator",   desc: "Calculates daily nutrition needs.",  icon: "🥗", version: "v1.1" },
@@ -44,7 +41,6 @@ const AVAILABLE_TOOLS = [
   { id: "track_goals",           name: "Goal Tracker",           desc: "Monitors fitness goals.",            icon: "🎯", version: "v1.0" },
 ];
 
-// ─── Agents ───────────────────────────────────────────────────────────────────
 const AVAILABLE_AGENTS = [
   { id: "health_agent",     name: "Health Agent",     desc: "Health advice and metrics.",         icon: "🩺", version: "v2.0" },
   { id: "fitness_agent",    name: "Fitness Agent",    desc: "Workout guidance and routines.",     icon: "🏃", version: "v1.5" },
@@ -53,24 +49,21 @@ const AVAILABLE_AGENTS = [
   { id: "supervisor_agent", name: "Supervisor Agent", desc: "Coordinates all agents.",            icon: "👔", version: "v1.0" },
 ];
 
-// ─── Languages ────────────────────────────────────────────────────────────────
 const LANGUAGES = [
-  { code: "en", label: "English"   },
-  { code: "es", label: "Español"   },
-  { code: "fr", label: "Français"  },
-  { code: "de", label: "Deutsch"   },
-  { code: "zh", label: "中文"      },
-  { code: "ar", label: "العربية"   },
-  { code: "ru", label: "Русский"   },
-  { code: "pt", label: "Português" },
-  { code: "ja", label: "日本語"    },
-  { code: "hi", label: "हिन्दी"    },
+  { code: "en", label: "🇺🇸 English"   },
+  { code: "es", label: "🇪🇸 Español"   },
+  { code: "fr", label: "🇫🇷 Français"  },
+  { code: "de", label: "🇩🇪 Deutsch"   },
+  { code: "zh", label: "🇨🇳 中文"      },
+  { code: "ar", label: "🇸🇦 العربية"   },
+  { code: "ru", label: "🇷🇺 Русский"   },
+  { code: "pt", label: "🇧🇷 Português" },
+  { code: "ja", label: "🇯🇵 日本語"    },
+  { code: "hi", label: "🇮🇳 हिन्दी"    },
 ];
 
-// ─── Model pricing ────────────────────────────────────────────────────────────
 const MODEL_COSTS = getAllModelCosts();
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
 export function getStoredSettings(): AgentSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
@@ -80,100 +73,80 @@ export function getStoredSettings(): AgentSettings {
 }
 
 const toBackendFormat = (s: AgentSettings) => ({
-  llm:               s.llm,
-  temperature:       s.temperature,
-  topP:              s.topP,
-  top_p:             s.topP,
-  frequencyPenalty:  s.frequencyPenalty,
-  frequency_penalty: s.frequencyPenalty,
-  personality:       s.personality,
-  enableCache:       s.enableCache,
-  enableTools:       s.enableTools,
-  enabledTools:      s.enabledTools,
-  units:             s.units,
-  notifications:     s.notifications,
-  theme:             s.theme,
-  language:          s.language,
+  llm: s.llm, temperature: s.temperature, topP: s.topP, top_p: s.topP,
+  frequencyPenalty: s.frequencyPenalty, frequency_penalty: s.frequencyPenalty,
+  personality: s.personality, enableCache: s.enableCache, enableTools: s.enableTools,
+  enabledTools: s.enabledTools, units: s.units, notifications: s.notifications,
+  theme: s.theme, language: s.language,
 });
 
-// ── Real-time side effects ─────────────────────────────────────────────────────
-
-/** Apply theme immediately to body + html */
 function applyTheme(theme: string) {
   const root = document.documentElement;
   if (theme === "dark") {
-    root.classList.add("dark");
-    root.classList.remove("light");
-    root.style.colorScheme               = "dark";
+    root.classList.add("dark"); root.classList.remove("light");
+    root.style.colorScheme = "dark";
     document.body.style.backgroundColor = "#0f172a";
-    document.body.style.color           = "#f8fafc";
+    document.body.style.color = "#f8fafc";
   } else {
-    root.classList.add("light");
-    root.classList.remove("dark");
-    root.style.colorScheme               = "light";
-    document.body.style.backgroundColor = "#ccfbf1";
-    document.body.style.color           = "#042f2e";
+    root.classList.add("light"); root.classList.remove("dark");
+    root.style.colorScheme = "light";
+    document.body.style.backgroundColor = "#f0fdf4";
+    document.body.style.color = "#042f2e";
   }
 }
 
-/** Set html lang + dir, fire StorageEvent for translation hooks */
 function applyLanguage(lang: string) {
   document.documentElement.lang = lang;
   document.documentElement.dir  = lang === "ar" ? "rtl" : "ltr";
-  window.dispatchEvent(new StorageEvent("storage", {
-    key: SETTINGS_KEY, newValue: localStorage.getItem(SETTINGS_KEY),
-  }));
+  window.dispatchEvent(new StorageEvent("storage", { key: SETTINGS_KEY, newValue: localStorage.getItem(SETTINGS_KEY) }));
 }
 
-/** Save units + notify Progress/Nutrition pages */
 function applyUnits(units: string) {
   localStorage.setItem("preferredUnits", units);
-  window.dispatchEvent(new StorageEvent("storage", {
-    key: "preferredUnits", newValue: units,
-  }));
+  window.dispatchEvent(new StorageEvent("storage", { key: "preferredUnits", newValue: units }));
 }
 
-/** Request browser notification permission */
 async function requestNotificationPermission(): Promise<boolean> {
-  if (!("Notification" in window)) {
-    alert("This browser does not support notifications.");
-    return false;
-  }
+  if (!("Notification" in window)) { alert("This browser does not support notifications."); return false; }
   if (Notification.permission === "granted") return true;
-  if (Notification.permission === "denied") {
-    alert("Notifications are blocked. Enable them in your browser site settings.");
-    return false;
-  }
+  if (Notification.permission === "denied") { alert("Notifications are blocked. Enable them in your browser site settings."); return false; }
   const result = await Notification.requestPermission();
   return result === "granted";
 }
 
 function sendTestNotification() {
   if (Notification.permission === "granted") {
-    new Notification("FitCoach AI 🏋️", {
-      body: "Notifications are enabled! You'll get workout reminders here.",
-      icon: "/favicon.ico",
-    });
+    new Notification("FitCoach AI 🏋️", { body: "Notifications are enabled! You'll get workout reminders here.", icon: "/favicon.ico" });
   }
 }
 
-function loadTokenStats(userId: string): TokenStats {
-  return loadTokenStatsFromStorage(userId);
-}
-
-// ─── Toggle switch component ───────────────────────────────────────────────────
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+// ── Toggle switch ──────────────────────────────────────────────────────────
+function Toggle({ checked, onChange, size = "md" }: { checked: boolean; onChange: (v: boolean) => void; size?: "sm" | "md" }) {
+  const h = size === "sm" ? "h-5 w-9" : "h-6 w-11";
+  const k = size === "sm" ? "h-3 w-3" : "h-4 w-4";
+  const t = size === "sm" ? (checked ? "translate-x-5" : "translate-x-1") : (checked ? "translate-x-6" : "translate-x-1");
   return (
-    <button onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${checked ? "bg-green-600" : "bg-slate-600"}`}>
-      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
+    <button onClick={() => onChange(!checked)} aria-checked={checked} role="switch"
+      className={`relative inline-flex ${h} items-center rounded-full transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-800 ${checked ? "bg-green-600" : "bg-slate-600"}`}>
+      <span className={`inline-block ${k} transform rounded-full bg-white transition-transform shadow ${t}`} />
     </button>
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ── Stat badge ─────────────────────────────────────────────────────────────
+function StatBadge({ icon, label, value, color }: { icon: string; label: string; value: string | number; color: string }) {
+  return (
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${color}`}>
+      <span>{icon}</span>
+      <span className="text-slate-300">{label}:</span>
+      <span className="font-bold text-white">{value}</span>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════
 // Settings Page
-// ═════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
@@ -191,26 +164,15 @@ export default function SettingsPage() {
   const [deleteLoading,   setDeleteLoading]   = useState(false);
   const [tokenStats,      setTokenStats]      = useState<TokenStats | null>(null);
   const [activeTab,       setActiveTab]       = useState<"general" | "ai" | "tools" | "tokens" | "account">("general");
-
-  // Live tracking state
-  const [liveStats, setLiveStats] = useState({
-    toolsActive:   0,
-    agentsActive:  0,
-    cacheHits:     0,
-    lastSaved:     "" as string,
-    backendOnline: false,
-  });
+  const [backendOnline,   setBackendOnline]   = useState(false);
+  const [isSaving,        setIsSaving]        = useState(false);
 
   const saveTimer   = useRef<ReturnType<typeof setTimeout>  | null>(null);
   const sliderTimer = useRef<ReturnType<typeof setTimeout>  | null>(null);
   const pingTimer   = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Auth guard ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isLoading && !user) router.replace("/login");
-  }, [isLoading, user, router]);
+  useEffect(() => { if (!isLoading && !user) router.replace("/login"); }, [isLoading, user, router]);
 
-  // ── Load on mount ──────────────────────────────────────────────────────────
   useEffect(() => {
     const stored = getStoredSettings();
     setSettings(stored);
@@ -222,36 +184,20 @@ export default function SettingsPage() {
     pingBackend();
   }, []);
 
-  // ── Live backend ping every 30s ────────────────────────────────────────────
   useEffect(() => {
     pingTimer.current = setInterval(pingBackend, 30000);
     return () => { if (pingTimer.current) clearInterval(pingTimer.current); };
   }, []);
 
-  // ── Update live stats whenever settings change ─────────────────────────────
-  useEffect(() => {
-    setLiveStats((prev) => ({
-      ...prev,
-      toolsActive:  settings.enableTools ? settings.enabledTools.length : 0,
-      agentsActive: enabledAgents.length,
-    }));
-  }, [settings.enabledTools, settings.enableTools, enabledAgents]);
-
-  // ── Load token stats when tab opens ───────────────────────────────────────
   useEffect(() => {
     if (activeTab === "tokens" && user) {
       const token = getToken();
       if (token) {
         fetchTokenStatsFromBackend(token).then((stats) => {
-          if (stats) {
-            setTokenStats(stats);
-          } else {
-            // Fallback to localStorage
-            setTokenStats(loadTokenStats(user.id));
-          }
+          setTokenStats(stats ?? loadTokenStatsFromStorage(user.id));
         });
       } else {
-        setTokenStats(loadTokenStats(user.id));
+        setTokenStats(loadTokenStatsFromStorage(user.id));
       }
     }
   }, [activeTab, user]);
@@ -261,27 +207,21 @@ export default function SettingsPage() {
   const pingBackend = async () => {
     try {
       const res = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(3000) });
-      setLiveStats((prev) => ({ ...prev, backendOnline: res.ok }));
-    } catch {
-      setLiveStats((prev) => ({ ...prev, backendOnline: false }));
-    }
+      setBackendOnline(res.ok);
+    } catch { setBackendOnline(false); }
   };
 
   const fetchSettings = async () => {
     try {
       const token = getToken();
       if (!token) return;
-      const res = await fetch(`${API_URL}/api/settings`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${API_URL}/api/settings`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data   = await res.json();
         const merged = { ...DEFAULT_SETTINGS, ...data };
         setSettings(merged);
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(toBackendFormat(merged)));
-        applyTheme(merged.theme);
-        applyLanguage(merged.language);
-        applyUnits(merged.units);
+        applyTheme(merged.theme); applyLanguage(merged.language); applyUnits(merged.units);
       }
     } catch {}
   };
@@ -290,9 +230,7 @@ export default function SettingsPage() {
     try {
       const token = getToken();
       if (!token) return;
-      const res = await fetch(`${API_URL}/api/settings/agents`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${API_URL}/api/settings/agents`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         setEnabledAgents(data.enabledAgents ?? []);
@@ -305,69 +243,47 @@ export default function SettingsPage() {
   };
 
   const showMsg = (msg: string, type: "success" | "local" = "success") => {
-    setSaveMessage(msg);
-    setSaveMsgType(type);
+    setSaveMessage(msg); setSaveMsgType(type);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => setSaveMessage(""), 2500);
   };
 
-  // ── Persist to localStorage + backend ─────────────────────────────────────
   const persistSettings = useCallback(async (updated: AgentSettings) => {
+    setIsSaving(true);
     const payload = toBackendFormat(updated);
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(payload));
-
-    // Apply all side effects in real time
-    applyTheme(updated.theme);
-    applyLanguage(updated.language);
-    applyUnits(updated.units);
-
-    // Update last saved timestamp
-    setLiveStats((prev) => ({
-      ...prev,
-      lastSaved: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    }));
-
-    // Sync to backend
+    applyTheme(updated.theme); applyLanguage(updated.language); applyUnits(updated.units);
     try {
       const token = getToken();
-      if (!token) { showMsg("💾 Saved locally!", "local"); return; }
+      if (!token) { showMsg("💾 Saved locally!", "local"); setIsSaving(false); return; }
       const res = await fetch(`${API_URL}/api/settings`, {
-        method:  "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body:    JSON.stringify(payload),
+        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
       });
       showMsg(res.ok ? "✓ Settings saved!" : "💾 Saved locally!", res.ok ? "success" : "local");
-    } catch {
-      showMsg("💾 Saved locally!", "local");
-    }
+    } catch { showMsg("💾 Saved locally!", "local"); }
+    setIsSaving(false);
   }, []);
 
-  // ── Handle instant setting change ─────────────────────────────────────────
   const handleChange = async (field: keyof AgentSettings, value: any) => {
     if (field === "notifications" && value === true) {
       const granted = await requestNotificationPermission();
       if (!granted) return;
       const updated = { ...settings, notifications: true };
-      setSettings(updated);
-      await persistSettings(updated);
-      sendTestNotification();
-      return;
+      setSettings(updated); await persistSettings(updated); sendTestNotification(); return;
     }
     const updated = { ...settings, [field]: value };
-    setSettings(updated);
-    await persistSettings(updated);
+    setSettings(updated); await persistSettings(updated);
   };
 
-  // ── Slider — update UI instantly, debounce backend call ──────────────────
   const handleSlider = (field: keyof AgentSettings, value: number) => {
     const updated = { ...settings, [field]: value };
-    setSettings(updated);                          // instant UI update
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(toBackendFormat(updated))); // instant local save
+    setSettings(updated);
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(toBackendFormat(updated)));
     if (sliderTimer.current) clearTimeout(sliderTimer.current);
-    sliderTimer.current = setTimeout(() => persistSettings(updated), 400); // debounced backend
+    sliderTimer.current = setTimeout(() => persistSettings(updated), 400);
   };
 
-  // ── Tool toggle ────────────────────────────────────────────────────────────
   const handleToolToggle = async (toolId: string) => {
     if (!settings.enableTools) { showMsg("⚠️ Enable AI Tools first.", "local"); return; }
     setToolLoading(toolId);
@@ -375,12 +291,9 @@ export default function SettingsPage() {
       ? settings.enabledTools.filter((t) => t !== toolId)
       : [...settings.enabledTools, toolId];
     const updated = { ...settings, enabledTools: updatedTools };
-    setSettings(updated);
-    await persistSettings(updated);
-    setToolLoading(null);
+    setSettings(updated); await persistSettings(updated); setToolLoading(null);
   };
 
-  // ── Agent toggle ───────────────────────────────────────────────────────────
   const handleAgentToggle = async (agentId: string) => {
     setAgentLoading(agentId);
     const updated = enabledAgents.includes(agentId)
@@ -390,252 +303,223 @@ export default function SettingsPage() {
     localStorage.setItem("enabledAgents", JSON.stringify(updated));
     try {
       const token = getToken();
-      if (token) {
-        await fetch(`${API_URL}/api/settings/agents`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ enabledAgents: updated }),
-        });
-      }
+      if (token) await fetch(`${API_URL}/api/settings/agents`, {
+        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ enabledAgents: updated }),
+      });
     } catch {}
-    setAgentLoading(null);
-    showMsg("✓ Agent updated!");
+    setAgentLoading(null); showMsg("✓ Agent updated!");
   };
 
-  // ── Change password ────────────────────────────────────────────────────────
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) { showMsg("❌ Passwords do not match.", "local"); return; }
-    if (passwords.new.length < 6)            { showMsg("❌ Password must be at least 6 characters.", "local"); return; }
+    if (passwords.new.length < 6)            { showMsg("❌ Minimum 6 characters.", "local"); return; }
     setPwLoading(true);
     try {
       const token = getToken();
       const res   = await fetch(`${API_URL}/api/auth/update-password`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ email: user?.email, old_password: passwords.current, new_password: passwords.new }),
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ email: user?.email, old_password: passwords.current, new_password: passwords.new }),
       });
-      if (res.ok) { showMsg("✓ Password changed successfully!"); setPasswords({ current: "", new: "", confirm: "" }); }
-      else         { const d = await res.json(); showMsg(`❌ ${d.detail || "Failed to change password."}`, "local"); }
-    } catch {
-      showMsg("❌ Failed to change password.", "local");
-    }
+      if (res.ok) { showMsg("✓ Password changed!"); setPasswords({ current: "", new: "", confirm: "" }); }
+      else         { const d = await res.json(); showMsg(`❌ ${d.detail || "Failed."}`, "local"); }
+    } catch { showMsg("❌ Failed to change password.", "local"); }
     setPwLoading(false);
   };
 
-  // ── Delete account ─────────────────────────────────────────────────────────
   const handleDeleteAccount = async () => {
     if (!deletePassword) { showMsg("❌ Enter your password to confirm.", "local"); return; }
     setDeleteLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/auth/delete-account`, {
-        method:  "DELETE",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body:    JSON.stringify({ email: user?.email, password: deletePassword }),
+        method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ email: user?.email, password: deletePassword }),
       });
       if (res.ok) { localStorage.clear(); window.location.href = "/login"; }
-      else         { showMsg("❌ Failed to delete. Check your password.", "local"); setDeleteLoading(false); }
-    } catch {
-      showMsg("❌ Failed to delete account.", "local");
-      setDeleteLoading(false);
-    }
+      else { showMsg("❌ Failed. Check your password.", "local"); setDeleteLoading(false); }
+    } catch { showMsg("❌ Failed to delete account.", "local"); setDeleteLoading(false); }
   };
 
   const clearTokenHistoryHandler = () => {
     if (!user || !window.confirm("Clear all token usage history?")) return;
-    const token = getToken();
-    clearTokenHistory(user.id, token);
+    clearTokenHistory(user.id, getToken());
     setTokenStats({ totalTokens: 0, totalCost: 0, totalMessages: 0, history: [], byModel: {} });
     showMsg("✓ Token history cleared!");
   };
 
-  // ── Derived ────────────────────────────────────────────────────────────────
   const pwsMatch  = passwords.new && passwords.confirm && passwords.new === passwords.confirm && passwords.new.length >= 6;
   const pwNoMatch = passwords.new && passwords.confirm && passwords.new !== passwords.confirm;
   const notifStatus = typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported";
+  const toolsActive = settings.enableTools ? settings.enabledTools.length : 0;
 
-  const selectCls = "p-2.5 border border-slate-600 rounded-lg w-full bg-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm";
-  const inputCls  = "p-2.5 border border-slate-600 rounded-lg w-full bg-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm";
-  const cardCls   = "bg-slate-800 text-slate-100 rounded-xl shadow p-5 flex flex-col gap-4 border border-slate-700";
+  const selectCls = "p-2.5 border border-slate-600 rounded-xl w-full bg-slate-700/80 text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm transition-colors";
+  const inputCls  = "p-2.5 border border-slate-600 rounded-xl w-full bg-slate-700/80 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm transition-colors";
+  const cardCls   = "bg-slate-800/60 backdrop-blur-sm text-slate-100 rounded-2xl shadow-lg p-6 flex flex-col gap-5 border border-slate-700/50";
+  const sectionTitle = "text-base font-bold text-white pb-2 border-b border-slate-700/60 flex items-center gap-2";
 
   const tabs = [
-    { id: "general", label: "⚙️ General"       },
-    { id: "ai",      label: "🤖 AI Model"       },
-    { id: "tools",   label: "🛠️ Tools & Agents" },
-    { id: "tokens",  label: "📊 Token Usage"    },
-    { id: "account", label: "👤 Account"        },
+    { id: "general", label: "General",       icon: "⚙️" },
+    { id: "ai",      label: "AI Model",      icon: "🤖" },
+    { id: "tools",   label: "Tools",         icon: "🛠️" },
+    { id: "tokens",  label: "Token Usage",   icon: "📊" },
+    { id: "account", label: "Account",       icon: "👤" },
   ] as const;
 
   if (isLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900">
-      <p className="text-slate-400">Loading...</p>
+      <div className="text-center space-y-3">
+        <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-slate-400 text-sm">Loading settings...</p>
+      </div>
     </div>
   );
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
-      {/* ── Live status bar ────────────────────────────────────────────────── */}
-      <div className="bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3 text-xs">
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full ${liveStats.backendOnline ? "bg-green-400" : "bg-red-400"} animate-pulse`} />
-          <span className="text-slate-400">Backend {liveStats.backendOnline ? "online" : "offline"}</span>
-        </div>
-        <div className="w-px h-3 bg-slate-600" />
-        <span className="text-slate-400">🛠️ <span className="text-green-400 font-semibold">{liveStats.toolsActive}</span> tools active</span>
-        <div className="w-px h-3 bg-slate-600" />
-        <span className="text-slate-400">🤖 <span className="text-blue-400 font-semibold">{liveStats.agentsActive}</span> agents active</span>
-        <div className="w-px h-3 bg-slate-600" />
-        <span className="text-slate-400">🌡 Temp <span className="text-yellow-400 font-semibold">{settings.temperature}</span></span>
-        <div className="w-px h-3 bg-slate-600" />
-        <span className="text-slate-400">🌐 <span className="text-slate-200 font-semibold uppercase">{settings.language}</span></span>
-        {liveStats.lastSaved && (
-          <>
-            <div className="w-px h-3 bg-slate-600" />
-            <span className="text-slate-500">Last saved {liveStats.lastSaved}</span>
-          </>
-        )}
-      </div>
-
-      {/* ── User header ────────────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center py-2">
-        <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-3xl font-bold text-slate-100 mb-3 border-2 border-green-500">
-          {user?.name?.[0]?.toUpperCase() || "U"}
-        </div>
-        <h1 className="text-xl font-bold text-slate-100 mb-1">
-          {user?.name ? `Welcome, ${user.name}!` : "Settings"}
-        </h1>
-        <p className="text-slate-400 text-sm">{user?.email || "Configure your AI coach"}</p>
-
-        {/* Live status pills */}
-        <div className="mt-3 flex flex-wrap gap-2 justify-center">
-          <span className="text-xs bg-green-900/40 border border-green-700/50 text-green-300 px-3 py-1 rounded-full">
-            {settings.llm === "openai" ? "GPT-4" : settings.llm === "anthropic" ? "Claude" : "Gemini"}
-          </span>
-          <span className="text-xs bg-slate-700 border border-slate-600 text-slate-300 px-3 py-1 rounded-full capitalize">
-            {settings.personality}
-          </span>
-          <span className="text-xs bg-slate-700 border border-slate-600 text-slate-300 px-3 py-1 rounded-full">
-            🌡 {settings.temperature}
-          </span>
-          <span className="text-xs bg-slate-700 border border-slate-600 text-slate-300 px-3 py-1 rounded-full">
-            {settings.theme === "dark" ? "🌙 Dark" : "☀️ Light"}
-          </span>
-          <span className="text-xs bg-blue-900/40 border border-blue-700/50 text-blue-300 px-3 py-1 rounded-full uppercase">
-            🌐 {settings.language}
-          </span>
-          <span className="text-xs bg-purple-900/40 border border-purple-700/50 text-purple-300 px-3 py-1 rounded-full">
-            {settings.units === "metric" ? "📏 Metric" : "📏 Imperial"}
-          </span>
-          <span className={`text-xs px-3 py-1 rounded-full border ${
-            settings.enableTools
-              ? "bg-green-900/40 border-green-700/50 text-green-300"
-              : "bg-red-900/40 border-red-700/50 text-red-300"
-          }`}>
-            {settings.enableTools ? `🛠️ ${settings.enabledTools.length} tools on` : "🛠️ Tools off"}
-          </span>
-        </div>
-
-        {/* Save feedback */}
-        {saveMessage && (
-          <div className={`text-sm mt-3 px-4 py-2 rounded-lg border transition-all ${
-            saveMsgType === "success"
-              ? "text-green-400 bg-green-900/30 border-green-700/40"
-              : "text-yellow-400 bg-yellow-900/30 border-yellow-700/40"
-          }`}>
-            {saveMessage}
+      {/* ── Clean header card ─────────────────────────────────────────────── */}
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-slate-700/50 p-6 shadow-xl">
+        <div className="flex items-center gap-5">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-600 to-emerald-700 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+              {user?.name?.[0]?.toUpperCase() || "U"}
+            </div>
+            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-800 ${backendOnline ? "bg-green-400" : "bg-slate-500"}`} />
           </div>
-        )}
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-white truncate">{user?.name || "Settings"}</h1>
+            <p className="text-slate-400 text-sm truncate">{user?.email}</p>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${backendOnline ? "bg-green-900/50 text-green-300 border border-green-700/40" : "bg-slate-700 text-slate-400 border border-slate-600"}`}>
+                {backendOnline ? "● Online" : "● Offline"}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 border border-slate-600 font-medium">
+                {settings.llm === "openai" ? "GPT-4" : settings.llm === "anthropic" ? "Claude" : "Gemini"}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 border border-slate-600 font-medium capitalize">
+                {settings.theme === "dark" ? "🌙" : "☀️"} {settings.theme}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 border border-slate-600 font-medium">
+                {settings.units === "metric" ? "📏 Metric" : "📐 Imperial"}
+              </span>
+              {toolsActive > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300 border border-green-700/40 font-medium">
+                  🛠️ {toolsActive} tools
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Save indicator */}
+          <div className="shrink-0">
+            {isSaving ? (
+              <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            ) : saveMessage ? (
+              <div className={`text-xs px-3 py-1.5 rounded-lg border font-medium ${
+                saveMsgType === "success"
+                  ? "text-green-400 bg-green-900/30 border-green-700/40"
+                  : "text-amber-400 bg-amber-900/30 border-amber-700/40"
+              }`}>
+                {saveMessage}
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 border-b border-slate-700 overflow-x-auto">
+      {/* ── Tabs ──────────────────────────────────────────────────────────── */}
+      <div className="flex gap-1 bg-slate-800/50 rounded-2xl p-1 border border-slate-700/50 overflow-x-auto">
         {tabs.map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-1 justify-center ${
               activeTab === tab.id
-                ? "text-green-400 border-b-2 border-green-400"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-green-600 text-white shadow-lg"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
             }`}>
-            {tab.label}
+            <span className="text-base">{tab.icon}</span>
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      {/* ════════════════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════════
           GENERAL TAB
-      ════════════════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "general" && (
         <div className={cardCls}>
-          <h2 className="text-base font-semibold border-b border-slate-700 pb-2">⚙️ General</h2>
+          <h2 className={sectionTitle}>⚙️ General Settings</h2>
 
           {/* Units */}
           <div>
-            <label className="block mb-2 font-semibold text-sm">Units</label>
-            <div className="grid grid-cols-2 gap-2">
+            <label className="block mb-2 font-semibold text-sm text-slate-200">Measurement Units</label>
+            <div className="grid grid-cols-2 gap-3">
               {[
-                { value: "metric",   label: "📏 Metric",   sub: "kg, cm, °C" },
-                { value: "imperial", label: "📐 Imperial", sub: "lbs, ft, °F" },
+                { value: "metric",   label: "📏 Metric",   sub: "kg · cm · °C", color: "border-blue-500 bg-blue-900/20" },
+                { value: "imperial", label: "📐 Imperial", sub: "lbs · ft · °F", color: "border-orange-500 bg-orange-900/20" },
               ].map((opt) => (
                 <button key={opt.value} onClick={() => handleChange("units", opt.value)}
-                  className={`p-3 rounded-lg border-2 text-left transition-all ${
-                    settings.units === opt.value
-                      ? "border-green-500 bg-green-900/20"
-                      : "border-slate-600 bg-slate-700 hover:border-slate-500"
+                  className={`p-4 rounded-xl border-2 text-left transition-all hover:scale-[1.02] ${
+                    settings.units === opt.value ? opt.color : "border-slate-600 bg-slate-700/50 hover:border-slate-500"
                   }`}>
-                  <p className="font-semibold text-sm text-slate-100">{opt.label}</p>
-                  <p className="text-xs text-slate-400">{opt.sub}</p>
+                  <p className="font-bold text-sm text-slate-100">{opt.label}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{opt.sub}</p>
+                  {settings.units === opt.value && <p className="text-xs text-green-400 mt-1">✓ Active</p>}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-green-400 mt-1">✓ Applied instantly to Profile, Nutrition & Progress pages</p>
+            <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+              <span>✓</span> Applied instantly across Profile, Nutrition & Progress
+            </p>
           </div>
 
           {/* Theme */}
           <div>
-            <label className="block mb-2 font-semibold text-sm">Theme</label>
-            <div className="grid grid-cols-2 gap-2">
+            <label className="block mb-2 font-semibold text-sm text-slate-200">App Theme</label>
+            <div className="grid grid-cols-2 gap-3">
               {[
-                { value: "dark",  label: "🌙 Dark",  sub: "Easy on the eyes" },
-                { value: "light", label: "☀️ Light", sub: "Clean & bright"   },
+                { value: "dark",  label: "🌙 Dark",  sub: "Easy on the eyes",  color: "border-slate-400 bg-slate-700/50" },
+                { value: "light", label: "☀️ Light", sub: "Clean & bright",    color: "border-yellow-500 bg-yellow-900/20" },
               ].map((opt) => (
                 <button key={opt.value} onClick={() => handleChange("theme", opt.value)}
-                  className={`p-3 rounded-lg border-2 text-left transition-all ${
-                    settings.theme === opt.value
-                      ? "border-green-500 bg-green-900/20"
-                      : "border-slate-600 bg-slate-700 hover:border-slate-500"
+                  className={`p-4 rounded-xl border-2 text-left transition-all hover:scale-[1.02] ${
+                    settings.theme === opt.value ? opt.color : "border-slate-600 bg-slate-700/50 hover:border-slate-500"
                   }`}>
-                  <p className="font-semibold text-sm text-slate-100">{opt.label}</p>
-                  <p className="text-xs text-slate-400">{opt.sub}</p>
+                  <p className="font-bold text-sm text-slate-100">{opt.label}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{opt.sub}</p>
+                  {settings.theme === opt.value && <p className="text-xs text-green-400 mt-1">✓ Active</p>}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-green-400 mt-1">✓ Applied instantly to the whole app</p>
           </div>
 
           {/* Language */}
           <div>
-            <label className="block mb-2 font-semibold text-sm">Language</label>
+            <label className="block mb-2 font-semibold text-sm text-slate-200">Language</label>
             <select value={settings.language} onChange={(e) => handleChange("language", e.target.value)} className={selectCls}>
               {LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>{l.label}</option>
               ))}
             </select>
-            <p className="text-xs text-green-400 mt-1">
-              ✓ Sets page language & direction (Arabic = RTL). Place translation files in <code className="text-green-300">public/messages/</code>
+            <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+              <span>✓</span> Sets page language & text direction (Arabic = RTL)
             </p>
           </div>
 
           {/* Notifications */}
-          <div>
+          <div className={`p-4 rounded-xl border transition-all ${
+            settings.notifications ? "bg-green-900/20 border-green-500/50" : "bg-slate-700/30 border-slate-600"
+          }`}>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="font-semibold text-sm">Enable Notifications</p>
+                <p className="font-semibold text-sm text-slate-100">🔔 Push Notifications</p>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {notifStatus === "granted"     && "✅ Browser permission granted"}
-                  {notifStatus === "denied"      && "🚫 Blocked — enable in browser settings"}
-                  {notifStatus === "default"     && "Will request permission when toggled on"}
+                  {notifStatus === "granted"     && "✅ Permission granted"}
+                  {notifStatus === "denied"      && "🚫 Blocked in browser settings"}
+                  {notifStatus === "default"     && "Permission will be requested"}
                   {notifStatus === "unsupported" && "❌ Not supported in this browser"}
                 </p>
               </div>
@@ -643,7 +527,7 @@ export default function SettingsPage() {
             </div>
             {settings.notifications && notifStatus === "granted" && (
               <button onClick={sendTestNotification}
-                className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg transition-colors border border-slate-600">
+                className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg transition-colors border border-slate-600 mt-1">
                 🔔 Send Test Notification
               </button>
             )}
@@ -651,48 +535,49 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════════
           AI MODEL TAB
-      ════════════════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "ai" && (
         <div className={cardCls}>
-          <h2 className="text-base font-semibold border-b border-slate-700 pb-2">🤖 AI Model</h2>
+          <h2 className={sectionTitle}>🤖 AI Model Configuration</h2>
 
           {/* LLM */}
           <div>
-            <label className="block mb-2 font-semibold text-sm">Language Model</label>
-            <div className="grid grid-cols-3 gap-2">
+            <label className="block mb-2 font-semibold text-sm text-slate-200">Language Model</label>
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { value: "openai",    label: "GPT-4",  sub: "OpenAI",    active: "border-green-500 bg-green-900/20"   },
-                { value: "anthropic", label: "Claude", sub: "Anthropic", active: "border-purple-500 bg-purple-900/20" },
-                { value: "google",    label: "Gemini", sub: "Google",    active: "border-blue-500 bg-blue-900/20"     },
+                { value: "openai",    label: "GPT-4",  sub: "OpenAI",    color: "border-emerald-500 bg-emerald-900/20", dot: "bg-emerald-400" },
+                { value: "anthropic", label: "Claude", sub: "Anthropic", color: "border-purple-500 bg-purple-900/20",   dot: "bg-purple-400"  },
+                { value: "google",    label: "Gemini", sub: "Google",    color: "border-blue-500 bg-blue-900/20",       dot: "bg-blue-400"    },
               ].map((opt) => (
                 <button key={opt.value} onClick={() => handleChange("llm", opt.value)}
-                  className={`p-3 rounded-lg border-2 text-center transition-all ${
-                    settings.llm === opt.value ? opt.active : "border-slate-600 bg-slate-700 hover:border-slate-500"
+                  className={`p-4 rounded-xl border-2 text-center transition-all hover:scale-[1.02] ${
+                    settings.llm === opt.value ? opt.color : "border-slate-600 bg-slate-700/50 hover:border-slate-500"
                   }`}>
+                  {settings.llm === opt.value && <div className={`w-2 h-2 rounded-full ${opt.dot} mx-auto mb-1`} />}
                   <p className="font-bold text-sm text-slate-100">{opt.label}</p>
                   <p className="text-xs text-slate-400">{opt.sub}</p>
                 </button>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-1">Takes effect on your next AI Coach message</p>
+            <p className="text-xs text-slate-500 mt-1">Takes effect on your next AI Coach message</p>
           </div>
 
           {/* Personality */}
           <div>
-            <label className="block mb-2 font-semibold text-sm">Coach Personality</label>
-            <div className="grid grid-cols-3 gap-2">
+            <label className="block mb-2 font-semibold text-sm text-slate-200">Coach Personality</label>
+            <div className="grid grid-cols-3 gap-3">
               {[
                 { value: "friendly", label: "😊 Friendly", sub: "Motivational"  },
                 { value: "formal",   label: "👔 Formal",   sub: "Professional"  },
                 { value: "concise",  label: "⚡ Concise",  sub: "Direct"        },
               ].map((opt) => (
                 <button key={opt.value} onClick={() => handleChange("personality", opt.value)}
-                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                  className={`p-4 rounded-xl border-2 text-center transition-all hover:scale-[1.02] ${
                     settings.personality === opt.value
                       ? "border-green-500 bg-green-900/20"
-                      : "border-slate-600 bg-slate-700 hover:border-slate-500"
+                      : "border-slate-600 bg-slate-700/50 hover:border-slate-500"
                   }`}>
                   <p className="font-semibold text-sm text-slate-100">{opt.label}</p>
                   <p className="text-xs text-slate-400">{opt.sub}</p>
@@ -701,97 +586,72 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Temperature */}
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="font-semibold text-sm">Temperature</label>
-              <span className="font-mono text-green-400 text-sm">
-                {settings.temperature}
-                <span className="text-slate-500 text-xs ml-1">
-                  — {settings.temperature < 0.4 ? "Focused" : settings.temperature < 0.7 ? "Balanced" : "Creative"}
+          {/* Sliders */}
+          {[
+            { field: "temperature" as const, label: "Temperature", min: 0, max: 1, step: 0.01,
+              hint: settings.temperature < 0.4 ? "Focused & precise" : settings.temperature < 0.7 ? "Balanced" : "Creative & varied",
+              desc: "Controls creativity (0 = focused, 1 = creative)" },
+            { field: "topP" as const, label: "Top P", min: 0, max: 1, step: 0.01,
+              hint: `${settings.topP}`, desc: "Controls vocabulary diversity (0 = narrow, 1 = wide)" },
+            { field: "frequencyPenalty" as const, label: "Frequency Penalty", min: 0, max: 2, step: 0.01,
+              hint: `${settings.frequencyPenalty}`, desc: "Higher = less repetition in responses" },
+          ].map(({ field, label, min, max, step, hint, desc }) => (
+            <div key={field}>
+              <div className="flex justify-between items-center mb-2">
+                <label className="font-semibold text-sm text-slate-200">{label}</label>
+                <span className="text-xs font-mono bg-slate-700 px-2 py-1 rounded-lg text-green-400">
+                  {settings[field]} <span className="text-slate-500 ml-1">{hint !== String(settings[field]) ? `— ${hint}` : ""}</span>
                 </span>
-              </span>
+              </div>
+              <input type="range" min={min} max={max} step={step} value={settings[field]}
+                onChange={(e) => handleSlider(field, parseFloat(e.target.value))}
+                className="w-full accent-green-500 cursor-pointer" />
+              <p className="text-xs text-slate-500 mt-1">{desc}</p>
             </div>
-            <input type="range" min={0} max={1} step={0.01} value={settings.temperature}
-              onChange={(e) => handleSlider("temperature", parseFloat(e.target.value))}
-              className="w-full accent-green-500" />
-            <div className="flex justify-between text-xs text-slate-500 mt-0.5">
-              <span>0 — Focused</span><span>0.5</span><span>1.0 — Creative</span>
-            </div>
-          </div>
+          ))}
 
-          {/* Top P */}
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="font-semibold text-sm">Top P</label>
-              <span className="font-mono text-green-400 text-sm">{settings.topP}</span>
-            </div>
-            <input type="range" min={0} max={1} step={0.01} value={settings.topP}
-              onChange={(e) => handleSlider("topP", parseFloat(e.target.value))}
-              className="w-full accent-green-500" />
-            <p className="text-xs text-slate-500 mt-0.5">Controls vocabulary diversity (0 = narrow, 1 = wide)</p>
+          {/* Toggles */}
+          <div className="space-y-3">
+            {[
+              { field: "enableCache" as const,  label: "Response Caching", desc: "Reuses identical recent responses via Redis", icon: "⚡" },
+              { field: "enableTools" as const,  label: "AI Tools Master",  desc: "Master switch — disables all tools when off",  icon: "🛠️" },
+            ].map(({ field, label, desc, icon }) => (
+              <div key={field} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                settings[field] ? "bg-green-900/15 border-green-500/50" : "bg-slate-700/30 border-slate-600"
+              }`}>
+                <div>
+                  <p className="font-semibold text-sm text-slate-100">{icon} {label}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+                </div>
+                <Toggle checked={settings[field]} onChange={(v) => handleChange(field, v)} />
+              </div>
+            ))}
           </div>
-
-          {/* Frequency Penalty */}
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="font-semibold text-sm">Frequency Penalty</label>
-              <span className="font-mono text-green-400 text-sm">{settings.frequencyPenalty}</span>
-            </div>
-            <input type="range" min={0} max={2} step={0.01} value={settings.frequencyPenalty}
-              onChange={(e) => handleSlider("frequencyPenalty", parseFloat(e.target.value))}
-              className="w-full accent-green-500" />
-            <p className="text-xs text-slate-500 mt-0.5">Higher = less repetition in responses</p>
-          </div>
-
-          {/* Cache toggle */}
-          <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
-            <div>
-              <p className="font-semibold text-sm">Enable Response Caching</p>
-              <p className="text-xs text-slate-400">Reuses identical recent responses via Redis</p>
-            </div>
-            <Toggle checked={settings.enableCache} onChange={(v) => handleChange("enableCache", v)} />
-          </div>
-
-          {/* Tools master toggle */}
-          <div className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-            settings.enableTools ? "bg-green-900/15 border-green-500/50" : "bg-red-900/15 border-red-500/50"
-          }`}>
-            <div>
-              <p className="font-semibold text-sm">Enable AI Tools</p>
-              <p className="text-xs text-slate-400">Master toggle — disables all tools when off</p>
-            </div>
-            <Toggle checked={settings.enableTools} onChange={(v) => handleChange("enableTools", v)} />
-          </div>
-          {!settings.enableTools && (
-            <p className="text-yellow-400 text-xs bg-yellow-900/20 border border-yellow-700/40 rounded-lg px-3 py-2">
-              ⚠️ All tools disabled — AI responds from knowledge only
-            </p>
-          )}
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-          TOOLS & AGENTS TAB
-      ════════════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════
+          TOOLS TAB
+      ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "tools" && (
-        <div className="flex flex-col gap-5">
-
+        <div className="space-y-5">
           {/* Tools */}
           <div className={cardCls}>
-            <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-              <h2 className="text-base font-semibold">🛠️ Available Tools</h2>
-              <span className={`text-xs px-2 py-1 rounded-full border ${
+            <div className="flex items-center justify-between pb-2 border-b border-slate-700/60">
+              <h2 className="font-bold text-white flex items-center gap-2">🛠️ Available Tools</h2>
+              <span className={`text-xs px-3 py-1 rounded-full border font-semibold ${
                 settings.enableTools
                   ? "bg-green-900/40 text-green-300 border-green-700/40"
                   : "bg-red-900/40 text-red-300 border-red-700/40"
               }`}>
-                {settings.enableTools
-                  ? `${settings.enabledTools.length}/${AVAILABLE_TOOLS.length} active`
-                  : "⚠️ Master off"}
+                {settings.enableTools ? `${settings.enabledTools.length}/${AVAILABLE_TOOLS.length} active` : "Master off"}
               </span>
             </div>
-            <p className="text-xs text-slate-400">Toggle tools the AI Coach can call. Requires AI Tools master to be on.</p>
+            {!settings.enableTools && (
+              <div className="bg-amber-900/20 border border-amber-700/40 rounded-xl px-4 py-3 text-amber-300 text-xs">
+                ⚠️ AI Tools master switch is off. Enable it in the AI Model tab to use tools.
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {AVAILABLE_TOOLS.map((tool) => {
                 const isOn    = settings.enabledTools.includes(tool.id);
@@ -799,23 +659,23 @@ export default function SettingsPage() {
                 return (
                   <button key={tool.id} onClick={() => handleToolToggle(tool.id)}
                     disabled={loading || !settings.enableTools}
-                    className={`flex items-center gap-3 rounded-lg p-3 border text-left transition-all w-full ${
-                      !settings.enableTools
-                        ? "opacity-40 cursor-not-allowed bg-slate-700/50 border-slate-600"
-                        : isOn
-                        ? "bg-green-900/15 border-green-500 hover:bg-green-900/25"
-                        : "bg-slate-700 border-slate-600 hover:border-green-500"
+                    className={`flex items-center gap-3 rounded-xl p-4 border-2 text-left transition-all w-full ${
+                      !settings.enableTools ? "opacity-40 cursor-not-allowed bg-slate-700/30 border-slate-700"
+                      : isOn ? "bg-green-900/20 border-green-500 hover:bg-green-900/30"
+                      : "bg-slate-700/30 border-slate-600 hover:border-green-500/50 hover:bg-slate-700/50"
                     }`}>
-                    <span className="text-xl shrink-0">{loading ? "⏳" : tool.icon}</span>
+                    <span className="text-2xl shrink-0">{loading ? "⏳" : tool.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm text-slate-100 truncate">{tool.name}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ml-2 shrink-0 ${isOn ? "bg-green-600 text-white" : "bg-slate-600 text-slate-300"}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-sm text-slate-100 truncate">{tool.name}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-semibold ${
+                          isOn ? "bg-green-600 text-white" : "bg-slate-600 text-slate-300"
+                        }`}>
                           {isOn ? "ON" : "OFF"}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400 block">{tool.desc}</span>
-                      <span className="text-xs text-slate-500">{tool.version}</span>
+                      <p className="text-xs text-slate-400 mt-0.5">{tool.desc}</p>
+                      <p className="text-xs text-slate-500">{tool.version}</p>
                     </div>
                   </button>
                 );
@@ -825,9 +685,9 @@ export default function SettingsPage() {
 
           {/* Agents */}
           <div className={cardCls}>
-            <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-              <h2 className="text-base font-semibold">🤖 Available Agents</h2>
-              <span className="text-xs px-2 py-1 rounded-full bg-blue-900/40 text-blue-300 border border-blue-700/40">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-700/60">
+              <h2 className="font-bold text-white flex items-center gap-2">🤖 Available Agents</h2>
+              <span className="text-xs px-3 py-1 rounded-full bg-blue-900/40 text-blue-300 border border-blue-700/40 font-semibold">
                 {enabledAgents.length}/{AVAILABLE_AGENTS.length} active
               </span>
             </div>
@@ -837,23 +697,24 @@ export default function SettingsPage() {
                 const isOn    = enabledAgents.includes(agent.id);
                 const loading = agentLoading === agent.id;
                 return (
-                  <button key={agent.id} onClick={() => handleAgentToggle(agent.id)}
-                    disabled={loading}
-                    className={`flex items-center gap-3 rounded-lg p-3 border text-left transition-all w-full ${
+                  <button key={agent.id} onClick={() => handleAgentToggle(agent.id)} disabled={loading}
+                    className={`flex items-center gap-3 rounded-xl p-4 border-2 text-left transition-all w-full ${
                       isOn
-                        ? "bg-blue-900/15 border-blue-500 hover:bg-blue-900/25"
-                        : "bg-slate-700 border-slate-600 hover:border-blue-500"
+                        ? "bg-blue-900/20 border-blue-500 hover:bg-blue-900/30"
+                        : "bg-slate-700/30 border-slate-600 hover:border-blue-500/50 hover:bg-slate-700/50"
                     }`}>
-                    <span className="text-xl shrink-0">{loading ? "⏳" : agent.icon}</span>
+                    <span className="text-2xl shrink-0">{loading ? "⏳" : agent.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm text-slate-100 truncate">{agent.name}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ml-2 shrink-0 ${isOn ? "bg-blue-600 text-white" : "bg-slate-600 text-slate-300"}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-sm text-slate-100 truncate">{agent.name}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-semibold ${
+                          isOn ? "bg-blue-600 text-white" : "bg-slate-600 text-slate-300"
+                        }`}>
                           {isOn ? "ON" : "OFF"}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400 block">{agent.desc}</span>
-                      <span className="text-xs text-slate-500">{agent.version}</span>
+                      <p className="text-xs text-slate-400 mt-0.5">{agent.desc}</p>
+                      <p className="text-xs text-slate-500">{agent.version}</p>
                     </div>
                   </button>
                 );
@@ -863,24 +724,22 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════════
           TOKEN USAGE TAB
-      ════════════════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "tokens" && (
-        <div className="flex flex-col gap-5">
-
-          {/* Summary */}
+        <div className="space-y-5">
+          {/* Summary cards */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Total Tokens",  value: tokenStats?.totalTokens.toLocaleString() ?? "0",    sub: "all messages",  color: "text-blue-400",   bg: "bg-blue-900/20 border-blue-700/40",    icon: "🔢" },
-              { label: "Total Cost",    value: `$${(tokenStats?.totalCost ?? 0).toFixed(4)}`,       sub: "USD estimated", color: "text-green-400",  bg: "bg-green-900/20 border-green-700/40",  icon: "💰" },
-              { label: "Messages Sent", value: tokenStats?.totalMessages.toLocaleString() ?? "0",   sub: "AI Coach msgs", color: "text-purple-400", bg: "bg-purple-900/20 border-purple-700/40",icon: "💬" },
+              { label: "Total Tokens",  value: tokenStats?.totalTokens.toLocaleString() ?? "0",   icon: "🔢", color: "from-blue-900/40 to-blue-800/20 border-blue-700/40",   textColor: "text-blue-300"   },
+              { label: "Total Cost",    value: `$${(tokenStats?.totalCost ?? 0).toFixed(4)}`,      icon: "💰", color: "from-green-900/40 to-green-800/20 border-green-700/40", textColor: "text-green-300"  },
+              { label: "Messages",      value: tokenStats?.totalMessages.toLocaleString() ?? "0",  icon: "💬", color: "from-purple-900/40 to-purple-800/20 border-purple-700/40",textColor: "text-purple-300"},
             ].map((card) => (
-              <div key={card.label} className={`rounded-xl p-4 border ${card.bg} text-center`}>
-                <p className="text-2xl mb-1">{card.icon}</p>
-                <p className={`text-xl font-bold ${card.color}`}>{card.value}</p>
-                <p className="text-slate-400 text-xs mt-0.5">{card.label}</p>
-                <p className="text-slate-500 text-xs">{card.sub}</p>
+              <div key={card.label} className={`rounded-2xl p-4 border bg-gradient-to-br ${card.color} text-center`}>
+                <p className="text-2xl mb-2">{card.icon}</p>
+                <p className={`text-xl font-bold ${card.textColor}`}>{card.value}</p>
+                <p className="text-slate-400 text-xs mt-1">{card.label}</p>
               </div>
             ))}
           </div>
@@ -888,25 +747,23 @@ export default function SettingsPage() {
           {/* By model */}
           {tokenStats && Object.keys(tokenStats.byModel).length > 0 && (
             <div className={cardCls}>
-              <h2 className="text-base font-semibold border-b border-slate-700 pb-2">📊 Usage by Model</h2>
-              <div className="space-y-3">
+              <h2 className={sectionTitle}>📊 Usage by Model</h2>
+              <div className="space-y-4">
                 {Object.entries(tokenStats.byModel).map(([model, data]) => {
-                  const pct = tokenStats.totalTokens > 0
-                    ? Math.round((data.tokens / tokenStats.totalTokens) * 100) : 0;
+                  const pct = tokenStats.totalTokens > 0 ? Math.round((data.tokens / tokenStats.totalTokens) * 100) : 0;
                   return (
                     <div key={model}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-semibold text-slate-200">{MODEL_COSTS[model]?.label || model}</span>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-sm font-bold text-slate-200">{MODEL_COSTS[model]?.label || model}</span>
                         <div className="flex gap-3 text-xs">
                           <span className="text-slate-400">{data.tokens.toLocaleString()} tokens</span>
                           <span className="text-green-400 font-bold">${data.cost.toFixed(4)}</span>
-                          <span className="text-slate-500">{data.messages} msgs</span>
                         </div>
                       </div>
-                      <div className="w-full bg-slate-700 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-2.5 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">{pct}% of total</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{pct}% of total · {data.messages} messages</p>
                     </div>
                   );
                 })}
@@ -914,61 +771,64 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Pricing table */}
+          {/* Pricing */}
           <div className={cardCls}>
-            <h2 className="text-base font-semibold border-b border-slate-700 pb-2">💲 Model Pricing</h2>
-            <p className="text-xs text-slate-400 -mt-2">Cost per 1,000 tokens (USD)</p>
-            <div className="overflow-x-auto">
+            <h2 className={sectionTitle}>💲 Model Pricing</h2>
+            <p className="text-xs text-slate-400 -mt-3">Cost per 1,000 tokens (USD)</p>
+            <div className="overflow-x-auto rounded-xl border border-slate-700/50">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-slate-400 text-xs border-b border-slate-700">
-                    <th className="text-left py-2 pr-4">Model</th>
-                    <th className="text-right py-2 pr-4">Input /1K</th>
-                    <th className="text-right py-2">Output /1K</th>
+                  <tr className="bg-slate-700/50 text-slate-400 text-xs">
+                    <th className="text-left px-4 py-3">Model</th>
+                    <th className="text-right px-4 py-3">Input /1K</th>
+                    <th className="text-right px-4 py-3">Output /1K</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(MODEL_COSTS).map(([key, info]) => (
-                    <tr key={key} className={`border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors ${
+                  {Object.entries(MODEL_COSTS).map(([key, info]) => {
+                    const active =
                       (settings.llm === "openai"    && key.startsWith("gpt"))    ||
                       (settings.llm === "anthropic" && key.startsWith("claude")) ||
-                      (settings.llm === "google"    && key.startsWith("gemini"))
-                        ? "bg-green-900/10" : ""
-                    }`}>
-                      <td className="py-2 pr-4 text-slate-200 font-medium">{info.label}</td>
-                      <td className="py-2 pr-4 text-right text-blue-400">${info.input.toFixed(5)}</td>
-                      <td className="py-2 text-right text-green-400">${info.output.toFixed(5)}</td>
-                    </tr>
-                  ))}
+                      (settings.llm === "google"    && key.startsWith("gemini"));
+                    return (
+                      <tr key={key} className={`border-t border-slate-700/50 transition-colors ${active ? "bg-green-900/10" : "hover:bg-slate-700/20"}`}>
+                        <td className="px-4 py-3 text-slate-200 font-medium flex items-center gap-2">
+                          {active && <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />}
+                          {info.label}
+                        </td>
+                        <td className="px-4 py-3 text-right text-blue-400">${info.input.toFixed(5)}</td>
+                        <td className="px-4 py-3 text-right text-green-400">${info.output.toFixed(5)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-slate-500">* Current model family highlighted. Prices approximate.</p>
           </div>
 
           {/* History */}
           <div className={cardCls}>
-            <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-              <h2 className="text-base font-semibold">🕐 Message History</h2>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-700/60">
+              <h2 className="font-bold text-white">🕐 Recent Messages</h2>
               {tokenStats && tokenStats.history.length > 0 && (
                 <button onClick={clearTokenHistoryHandler}
-                  className="text-xs text-red-400 hover:text-red-300 border border-red-700/40 px-2 py-1 rounded-lg transition-colors">
+                  className="text-xs text-red-400 hover:text-red-300 border border-red-700/40 px-3 py-1 rounded-lg transition-colors hover:bg-red-900/20">
                   Clear History
                 </button>
               )}
             </div>
             {!tokenStats || tokenStats.history.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-4xl mb-3">📭</p>
+              <div className="text-center py-8 space-y-2">
+                <p className="text-4xl">📭</p>
                 <p className="text-slate-400 text-sm">No token usage recorded yet</p>
-                <p className="text-slate-500 text-xs mt-1">Send a message to the AI Coach to start tracking</p>
+                <p className="text-slate-500 text-xs">Send a message to the AI Coach to start tracking</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {tokenStats.history.slice(0, 20).map((entry, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 px-3 bg-slate-700/50 rounded-lg">
+                  <div key={i} className="flex items-center justify-between py-2.5 px-3 bg-slate-700/40 rounded-xl border border-slate-700/30 hover:bg-slate-700/60 transition-colors">
                     <div>
-                      <p className="text-slate-200 text-xs font-medium">{MODEL_COSTS[entry.model]?.label || entry.model}</p>
+                      <p className="text-slate-200 text-xs font-semibold">{MODEL_COSTS[entry.model]?.label || entry.model}</p>
                       <p className="text-slate-500 text-xs">
                         {new Date(entry.date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </p>
@@ -985,76 +845,76 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════════
           ACCOUNT TAB
-      ════════════════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "account" && (
         <div className={cardCls}>
-          <h2 className="text-base font-semibold border-b border-slate-700 pb-2">👤 Account</h2>
+          <h2 className={sectionTitle}>👤 Account Settings</h2>
 
           {/* Account info */}
-          <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600 text-sm space-y-1.5">
+          <div className="bg-slate-700/40 rounded-xl p-4 border border-slate-600/50 space-y-2">
             {[
-              { label: "Name",     value: user?.name  || "—"                                                                       },
-              { label: "Email",    value: user?.email || "—"                                                                       },
-              { label: "Language", value: `${settings.language.toUpperCase()} — ${LANGUAGES.find((l) => l.code === settings.language)?.label}` },
-              { label: "Theme",    value: settings.theme === "dark" ? "🌙 Dark" : "☀️ Light"                                       },
-              { label: "Units",    value: settings.units === "metric" ? "Metric (kg/cm)" : "Imperial (lbs/ft)"                     },
-              { label: "AI Model", value: settings.llm === "openai" ? "GPT-4" : settings.llm === "anthropic" ? "Claude" : "Gemini"},
+              { label: "Name",     value: user?.name  || "—" },
+              { label: "Email",    value: user?.email || "—" },
+              { label: "Language", value: LANGUAGES.find((l) => l.code === settings.language)?.label || settings.language },
+              { label: "Theme",    value: settings.theme === "dark" ? "🌙 Dark" : "☀️ Light" },
+              { label: "Units",    value: settings.units === "metric" ? "📏 Metric (kg/cm)" : "📐 Imperial (lbs/ft)" },
+              { label: "AI Model", value: settings.llm === "openai" ? "GPT-4" : settings.llm === "anthropic" ? "Claude" : "Gemini" },
             ].map((row) => (
-              <div key={row.label} className="flex justify-between">
-                <span className="text-slate-400">{row.label}</span>
-                <span className="text-slate-200 font-medium">{row.value}</span>
+              <div key={row.label} className="flex justify-between items-center py-1 border-b border-slate-600/30 last:border-0">
+                <span className="text-slate-400 text-sm">{row.label}</span>
+                <span className="text-slate-200 font-semibold text-sm">{row.value}</span>
               </div>
             ))}
           </div>
 
           {/* Change password */}
-          <form className="flex flex-col gap-3" onSubmit={handleChangePassword}>
-            <label className="font-semibold text-sm border-b border-slate-700 pb-1">Change Password</label>
-            <input type="password" placeholder="Current Password"
-              value={passwords.current} onChange={(e) => setPasswords((p) => ({ ...p, current: e.target.value }))}
-              className={inputCls} required />
-            <input type="password" placeholder="New Password (min 6 characters)"
-              value={passwords.new} onChange={(e) => setPasswords((p) => ({ ...p, new: e.target.value }))}
-              className={inputCls} required minLength={6} />
-            <input type="password" placeholder="Confirm New Password"
-              value={passwords.confirm} onChange={(e) => setPasswords((p) => ({ ...p, confirm: e.target.value }))}
-              className={inputCls} required />
-            {pwNoMatch && <p className="text-red-400 text-xs">✗ Passwords do not match</p>}
-            {pwsMatch  && <p className="text-green-400 text-xs">✓ Passwords match — ready to save</p>}
-            <button type="submit"
-              disabled={pwLoading || !passwords.current || !pwsMatch}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 text-sm">
-              {pwLoading ? "Changing..." : "Change Password"}
-            </button>
-          </form>
+          <div>
+            <h3 className="font-bold text-sm text-slate-200 mb-3 flex items-center gap-2">🔑 Change Password</h3>
+            <form className="space-y-3" onSubmit={handleChangePassword}>
+              {[
+                { key: "current", placeholder: "Current Password" },
+                { key: "new",     placeholder: "New Password (min 6 characters)" },
+                { key: "confirm", placeholder: "Confirm New Password" },
+              ].map(({ key, placeholder }) => (
+                <input key={key} type="password" placeholder={placeholder} required
+                  value={passwords[key as keyof typeof passwords]}
+                  onChange={(e) => setPasswords((p) => ({ ...p, [key]: e.target.value }))}
+                  minLength={key !== "current" ? 6 : undefined}
+                  className={inputCls} />
+              ))}
+              {pwNoMatch && <p className="text-red-400 text-xs flex items-center gap-1">✗ Passwords do not match</p>}
+              {pwsMatch  && <p className="text-green-400 text-xs flex items-center gap-1">✓ Passwords match</p>}
+              <button type="submit" disabled={pwLoading || !passwords.current || !pwsMatch}
+                className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50 text-sm">
+                {pwLoading ? "Changing..." : "Change Password"}
+              </button>
+            </form>
+          </div>
 
-          {/* Danger Zone — single block, no duplicate */}
-          <div className="pt-4 border-t border-slate-700">
-            <h3 className="text-red-400 font-semibold mb-1 text-sm">⚠️ Danger Zone</h3>
-            <p className="text-xs text-slate-500 mb-3">
-              Permanently deletes your account and ALL data. This cannot be undone.
-            </p>
+          {/* Danger zone */}
+          <div className="pt-4 border-t border-red-900/40">
+            <h3 className="text-red-400 font-bold mb-1 text-sm flex items-center gap-2">⚠️ Danger Zone</h3>
+            <p className="text-xs text-slate-500 mb-3">Permanently deletes your account and all data. This cannot be undone.</p>
             {!showDeleteModal ? (
               <button onClick={() => setShowDeleteModal(true)}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm">
+                className="bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-700/50 px-4 py-2.5 rounded-xl font-semibold transition-all text-sm">
                 🗑️ Delete Account
               </button>
             ) : (
-              <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4 space-y-3">
+              <div className="bg-red-900/20 border border-red-700/50 rounded-xl p-4 space-y-3">
                 <p className="text-red-300 text-sm font-semibold">Are you absolutely sure? This is permanent.</p>
                 <input type="password" placeholder="Enter your password to confirm"
                   value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)}
                   className={inputCls} autoFocus />
                 <div className="flex gap-2">
                   <button onClick={() => { setShowDeleteModal(false); setDeletePassword(""); }}
-                    className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-sm transition-colors">
+                    className="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 text-sm transition-colors">
                     Cancel
                   </button>
-                  <button onClick={handleDeleteAccount}
-                    disabled={deleteLoading || !deletePassword}
-                    className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50">
+                  <button onClick={handleDeleteAccount} disabled={deleteLoading || !deletePassword}
+                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50">
                     {deleteLoading ? "Deleting..." : "Confirm Delete"}
                   </button>
                 </div>

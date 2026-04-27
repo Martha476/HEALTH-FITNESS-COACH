@@ -1,0 +1,67 @@
+{
+  "profile": {
+    "id": "098fc09d-2495-46e5-9a7a-f9c270916186",
+    "name": "MARTHA SABANO",
+    "age": 30,
+    "gender": "other",
+    "weight_lbs": 150,
+    "height": "5'10",
+    "target_weight": 0,
+    "fitness_level": "intermediate",
+    "primary_goal": "general fitness",
+    "activity_level": "moderate",
+    "dietary_type": "no-restriction",
+    "food_allergies": "",
+    "meals_per_day": 3,
+    "daily_calorie_goal": 0,
+    "preferred_workout": "mixed",
+    "equipment_available": "none",
+    "workout_days_per_week": 3,
+    "workout_duration": "45min",
+    "injuries": "",
+    "medical_conditions": ""
+  },
+  "profile_updated_at": "2026-04-22T20:03:55.032659",
+  "preferences": {
+    "llm": "openai",
+    "temperature": 0.7,
+    "topP": 0.9,
+    "frequencyPenalty": 0.0,
+    "personality": "friendly",
+    "enableCache": true,
+    "enableTools": true,
+    "enabledTools": [
+      "generate_workout_plan",
+      "calculate_nutrition",
+      "analyze_progress",
+      "search_exercises",
+      "track_goals"
+    ],
+    "ENABLE_RETRY": true,
+    "MAX_RETRIES": 3,
+    "RETRY_DELAY": 1,
+    "ENABLE_RAG": false,
+    "ENABLE_CACHE": false,
+    "ENABLE_TOKEN_TRACKING": true,
+    "ENABLE_FEEDBACK": true,
+    "ENABLE_AUTH": false,
+    "DEFAULT_LLM": "openai",
+    "OPENAI_MODEL": "gpt-4",
+    "ANTHROPIC_MODEL": "claude-opus-4-20250514",
+    "GOOGLE_MODEL": "gemini-1.5-pro"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": "how can I increase my hip size",
+      "timestamp": "2026-04-22T20:03:57.785355",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "Increasing your hip size is a combination of the right exercises and a balanced diet. Here's a plan you can try:\n\n1. **Exercise**: Strength training exercises that target your hips and glutes can help increase muscle mass and consequently, your hip size. Some effective exercises include squats, lunges, hip thrusts, and glute bridges. You can do these exercises using your body weight, but adding weights can further enhance muscle growth. Since you don't have any equipment, I'll generate a workout plan that only requires body weight.\n\n*generate_workout_plan*: {\"fitness_level\": \"intermediate\", \"goal\": \"hip size increase\", \"equipment\": \"none\", \"workout_days\": 3}\n\n2. **Diet**: It's also important to consume a balanced diet to support muscle growth and recovery. You should aim to eat a mix of protein, carbs, and healthy fats. Protein is particularly important as it helps build and repair muscles. Since your dietary type is \"no-restriction\", I'll calculate a nutrition plan that can support your muscle growth goals.\n\n*calculate_nutrition*: {\"weight\": 150, \"height\": \"5'10\", \"age\": 30, \"activity_level\": \"moderate\", \"goal\": \"muscle growth\"}\n\nRemember, it's important to be consistent with both your workouts and nutrition to see results. And always listen to your body and rest when needed.\ud83d\udcaa\ud83d\ude0a",
+      "timestamp": "2026-04-22T20:04:11.794754",
+      "metadata": {}
+    }
+  ]
+}

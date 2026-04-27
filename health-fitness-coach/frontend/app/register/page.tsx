@@ -103,8 +103,14 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(name, email, password);
-      router.push("/dashboard");
+      const result = await register(name, email, password);
+      // Redirect to email verification check page
+      if (result.requires_verification) {
+        router.push(`/verify-email-check?email=${encodeURIComponent(email)}`);
+      } else {
+        // Fallback: if no verification required, go to dashboard
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message || "Registration failed");
     } finally {
