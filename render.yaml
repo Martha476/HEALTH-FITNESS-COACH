@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: fitcoach-backend
+    runtime: python
+    repo: https://github.com/Martha476/HEALTH-FITNESS-COACH
+    branch: master
+    plan: free
+    rootDir: health-fitness-coach/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DEBUG
+        value: False
+      - key: ENABLE_AUTH
+        value: True
+      - key: ENABLE_FEEDBACK
+        value: True
+      - key: ENABLE_RETRY
+        value: True
+      - key: ENABLE_TOKEN_TRACKING
+        value: True
+      - key: ENABLE_CACHE
+        value: False
+      - key: ENABLE_RAG
+        value: False
