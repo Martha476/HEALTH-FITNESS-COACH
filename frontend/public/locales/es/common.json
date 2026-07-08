@@ -1,0 +1,23 @@
+{
+  "welcome": "¡Bienvenido a tu entrenador de fitness con IA!",
+  "login": "Iniciar sesión",
+  "register": "Registrarse",
+  "dashboard": "Panel",
+  "profile": "Perfil",
+  "settings": "Configuración",
+  "logout": "Cerrar sesión",
+  "chat": "Chat",
+  "save": "Guardar",
+  "cancel": "Cancelar",
+  "language": "Idioma",
+  "ai_coach": "Entrenador IA",
+  "feedback": "Retroalimentación",
+  "update": "Actualizar",
+  "submit": "Enviar",
+  "edit": "Editar",
+  "delete": "Eliminar",
+  "next": "Siguiente",
+  "previous": "Anterior",
+  "send": "Enviar",
+  "type_message": "Escribe tu mensaje..."
+}

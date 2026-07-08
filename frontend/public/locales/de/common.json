@@ -1,0 +1,23 @@
+{
+  "welcome": "Willkommen bei Ihrem KI-Fitnesscoach!",
+  "login": "Anmelden",
+  "register": "Registrieren",
+  "dashboard": "Dashboard",
+  "profile": "Profil",
+  "settings": "Einstellungen",
+  "logout": "Abmelden",
+  "chat": "Chat",
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "language": "Sprache",
+  "ai_coach": "KI-Coach",
+  "feedback": "Feedback",
+  "update": "Aktualisieren",
+  "submit": "Absenden",
+  "edit": "Bearbeiten",
+  "delete": "Löschen",
+  "next": "Nächste",
+  "previous": "Vorherige",
+  "send": "Senden",
+  "type_message": "Geben Sie Ihre Nachricht ein..."
+}
