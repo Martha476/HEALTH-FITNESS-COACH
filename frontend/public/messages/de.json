@@ -1,0 +1,28 @@
+{
+  "common": {
+    "loading": "Wird geladen...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "submit": "Absenden",
+    "error": "Etwas ist schiefgelaufen"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "workouts": "Workouts",
+    "nutrition": "Ernährung",
+    "progress": "Fortschritt",
+    "profile": "Profil",
+    "settings": "Einstellungen"
+  },
+  "home": {
+    "welcome": "Willkommen zurück",
+    "subtitle": "Dein KI-Fitness-Coach ist bereit zu helfen."
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "signup": "Registrieren"
+  }
+}

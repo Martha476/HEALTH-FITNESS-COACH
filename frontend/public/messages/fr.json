@@ -1,0 +1,28 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Envoyer",
+    "error": "Une erreur s'est produite"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "workouts": "Séances",
+    "nutrition": "Nutrition",
+    "progress": "Progrès",
+    "profile": "Profil",
+    "settings": "Paramètres"
+  },
+  "home": {
+    "welcome": "Bon retour",
+    "subtitle": "Votre coach fitness IA est prêt à vous aider."
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "signup": "S'inscrire"
+  }
+}

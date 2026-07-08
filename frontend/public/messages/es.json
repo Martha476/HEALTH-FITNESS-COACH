@@ -1,0 +1,28 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "submit": "Enviar",
+    "error": "Algo salió mal"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "workouts": "Entrenamientos",
+    "nutrition": "Nutrición",
+    "progress": "Progreso",
+    "profile": "Perfil",
+    "settings": "Configuración"
+  },
+  "home": {
+    "welcome": "Bienvenido de nuevo",
+    "subtitle": "Tu entrenador de fitness con IA está listo para ayudar."
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "signup": "Registrarse"
+  }
+}
