@@ -23,9 +23,14 @@
     "baseUrl": ".",
 
     "paths": {
-      "@/*": [
-        "app/*" // '@' maps to 'frontend/app' for both TS and webpack
-      ]
+      "@/*": ["./*"],
+      "@/app/*": ["./app/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/components/*": ["./components/*"],
+      "@/context/*": ["./context/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/types/*": ["./types/*"]
     },
     "plugins": [
       {
