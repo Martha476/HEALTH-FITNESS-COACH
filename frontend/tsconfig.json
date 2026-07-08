@@ -2,11 +2,7 @@
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "target": "ES2020",
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "esnext",
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -21,16 +17,15 @@
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
-
     "paths": {
-      "@/*": ["./*"],
-      "@/app/*": ["./app/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/components/*": ["./components/*"],
-      "@/context/*": ["./context/*"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/utils/*": ["./utils/*"],
-      "@/types/*": ["./types/*"]
+      "@/*": ["*"],
+      "@/lib/*": ["lib/*"],
+      "@/app/*": ["app/*"],
+      "@/components/*": ["components/*"],
+      "@/context/*": ["context/*"],
+      "@/hooks/*": ["hooks/*"],
+      "@/utils/*": ["utils/*"],
+      "@/types/*": ["types/*"]
     },
     "plugins": [
       {
@@ -45,7 +40,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
