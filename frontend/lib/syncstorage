@@ -1,0 +1,89 @@
+/**
+ * syncStorage.ts
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Central utility for reading and writing user-scoped localStorage keys.
+ *
+ * PROBLEM SOLVED:
+ *   - Workouts page was saving to "workoutHistory"
+ *   - Progress page was reading from "user_${id}_workoutHistory"
+ *   → Data never synced between pages
+ *
+ * SOLUTION:
+ *   - All pages write to BOTH the scoped key AND the global fallback key
+ *   - All pages read from the scoped key first, then fall back to global
+ *   - A StorageEvent is dispatched after every write so other open tabs/
+ *     components can react in real time
+ */
+
+// ─── Key helpers ──────────────────────────────────────────────────────────────
+
+/** Returns the user-scoped key, e.g. "user_abc123_workoutHistory" */
+export function scopedKey(userId: string, key: string): string {
+  return `user_${userId}_${key}`;
+}
+
+// ─── Read ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Read an array from localStorage.
+ * Tries scoped key first, falls back to global key, returns [] if missing.
+ */
+export function readList<T>(userId: string, key: string): T[] {
+  try {
+    const scoped = localStorage.getItem(scopedKey(userId, key));
+    if (scoped)  return JSON.parse(scoped) as T[];
+    const global = localStorage.getItem(key);
+    if (global)  return JSON.parse(global) as T[];
+  } catch {}
+  return [];
+}
+
+/**
+ * Read an object from localStorage.
+ * Tries scoped key first, falls back to global key, returns {} if missing.
+ */
+export function readObject<T extends object>(userId: string, key: string): T {
+  try {
+    const scoped = localStorage.getItem(scopedKey(userId, key));
+    if (scoped)  return JSON.parse(scoped) as T;
+    const global = localStorage.getItem(key);
+    if (global)  return JSON.parse(global) as T;
+  } catch {}
+  return {} as T;
+}
+
+// ─── Write ────────────────────────────────────────────────────────────────────
+
+/**
+ * Write a value to BOTH the scoped and global keys.
+ * Dispatches a StorageEvent so other components can react.
+ */
+export function writeData<T>(userId: string, key: string, value: T): void {
+  try {
+    const json = JSON.stringify(value);
+    localStorage.setItem(scopedKey(userId, key), json);
+    localStorage.setItem(key, json);
+
+    // Notify other components/tabs listening to storage events
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key:      key,
+        newValue: json,
+      })
+    );
+  } catch (err) {
+    console.error(`syncStorage.writeData error for key "${key}":`, err);
+  }
+}
+
+// ─── Common keys ─────────────────────────────────────────────────────────────
+export const STORAGE_KEYS = {
+  workoutHistory: "workoutHistory",
+  mealHistory:    "mealHistory",
+  weightHistory:  "weightHistory",
+  strengthLog:    "strengthLog",
+  userProfile:    "userProfile",
+  waterIntake:    "waterIntake",
+  waterDate:      "waterIntakeDate",
+  dashboardStats: "dashboardStats",
+} as const;
