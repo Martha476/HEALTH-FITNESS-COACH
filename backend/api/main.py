@@ -51,7 +51,6 @@ from database.models import User, UserSettings, TokenUsage, UserStats, WaterInta
 from api.workouts import router as workouts_router
 from api.nutrition import router as nutrition_router
 from api.meals_log import router as meals_log_router
-from api.barcode_scanner import router as barcode_scanner_router
 from api.water_intake import router as water_intake_router
 from api.food_search import router as food_search_router
 from api.suggestions import router as suggestions_router
@@ -82,7 +81,6 @@ app.add_middleware(
 app.include_router(workouts_router, prefix="/api", tags=["Workouts"])
 app.include_router(nutrition_router, prefix="/api", tags=["Nutrition"])
 app.include_router(meals_log_router, prefix="/api", tags=["Meals"])
-app.include_router(barcode_scanner_router, prefix="/api", tags=["Scanner"])
 app.include_router(water_intake_router, prefix="/api", tags=["Water"])
 app.include_router(food_search_router, prefix="/api", tags=["Food Search"])
 app.include_router(suggestions_router, prefix="/api", tags=["Suggestions"])
