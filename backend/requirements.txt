@@ -52,5 +52,5 @@ redis==5.0.1
 
 # ── Vector DB (optional) ─────────────────────────────
 pinecone>=3.0.0
-python-multipart==0.0.9# dummy
+python-multipart==0.0.9
 # force fresh build
