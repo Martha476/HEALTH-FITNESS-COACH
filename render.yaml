@@ -1,13 +1,12 @@
 services:
   - type: web
     name: fitcoach-backend
-    runtime: python
+    runtime: docker
     repo: https://github.com/Martha476/HEALTH-FITNESS-COACH
     branch: master
     plan: free
-    rootDir: health-fitness-coach/backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
       - key: DEBUG
