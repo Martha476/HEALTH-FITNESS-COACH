@@ -1,0 +1,280 @@
+﻿@import "tailwindcss";
+
+/* ─── FitCoach AI Color Palette ───────────────────────────────────────────────
+   Background: teal-100   #ccfbf1
+   Card:       white      #ffffff
+   Primary:    emerald-500 #10b981
+   Hover:      emerald-600 #059669
+   Accent:     teal-400   #2dd4bf
+   Danger:     red-500    #ef4444
+   Warning:    amber-500  #f59e0b
+   Text:       teal-950   #042f2e
+   Muted:      teal-700   #0f766e
+────────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --color-bg:            #ccfbf1; /* teal-100  — page background  */
+  --color-card:          #ffffff; /* white     — card surfaces     */
+  --color-card-alt:      #f0fdfa; /* teal-50   — subtle alt cards  */
+  --color-border:        #99f6e4; /* teal-200  — borders           */
+  --color-border-dark:   #2dd4bf; /* teal-400  — strong borders    */
+
+  --color-primary:       #10b981; /* emerald-500 */
+  --color-primary-hover: #059669; /* emerald-600 */
+  --color-accent:        #2dd4bf; /* teal-400    */
+  --color-accent-dark:   #0d9488; /* teal-600    */
+  --color-danger:        #ef4444; /* red-500     */
+  --color-danger-hover:  #dc2626; /* red-600     */
+  --color-warning:       #f59e0b; /* amber-500   */
+  --color-warning-hover: #d97706; /* amber-600   */
+
+  --color-text:          #042f2e; /* teal-950 — primary text  */
+  --color-text-muted:    #0f766e; /* teal-700 — muted text    */
+  --color-text-faint:    #14b8a6; /* teal-500 — faint/hint    */
+}
+
+/* ─── Reset ───────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ─── Base ────────────────────────────────────────────────────────────────── */
+html {
+  font-size: 16px;
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #ccfbf1; /* teal-100 */
+  color:            #042f2e; /* teal-950 */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar             { width: 6px; height: 6px; }
+::-webkit-scrollbar-track       { background: #ccfbf1; }
+::-webkit-scrollbar-thumb       { background: #5eead4; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+/* ─── Selection ────────────────────────────────────────────────────────────── */
+::selection {
+  background-color: #10b98133;
+  color: #042f2e;
+}
+
+/* ─── Focus ring ───────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* ─── Primary button ──────────────────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(to right, #10b981, #059669);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.btn-primary:active  { transform: translateY(0); }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ─── Danger button ────────────────────────────────────────────────────────── */
+.btn-danger {
+  background: linear-gradient(to right, #ef4444, #dc2626);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(to right, #dc2626, #b91c1c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ─── Tailwind overrides — remap slate-* dark classes to teal-100 light theme  */
+@layer utilities {
+
+  /* ── Page & surface backgrounds ── */
+  .bg-slate-900  { background-color: #ccfbf1 !important; } /* page bg  → teal-100  */
+  .bg-slate-800  { background-color: #ffffff !important; } /* cards    → white     */
+  .bg-slate-700  { background-color: #f0fdfa !important; } /* inputs   → teal-50   */
+  .bg-slate-600  { background-color: #99f6e4 !important; } /* dividers → teal-200  */
+  .bg-slate-800\/60 { background-color: rgba(255,255,255,0.6) !important; }
+  .bg-slate-800\/70 { background-color: rgba(255,255,255,0.7) !important; }
+  .bg-slate-700\/50 { background-color: rgba(240,253,250,0.5) !important; }
+  .bg-slate-900\/95 { background-color: rgba(204,251,241,0.95) !important; }
+  .bg-slate-900\/40 { background-color: rgba(204,251,241,0.4)  !important; }
+
+  /* ── Text ── */
+  .text-slate-100 { color: #042f2e !important; } /* primary text  → teal-950 */
+  .text-slate-200 { color: #134e4a !important; } /* strong text   → teal-900 */
+  .text-slate-300 { color: #0f766e !important; } /* body text     → teal-700 */
+  .text-slate-400 { color: #0d9488 !important; } /* muted text    → teal-600 */
+  .text-slate-500 { color: #14b8a6 !important; } /* faint text    → teal-500 */
+
+  /* ── Borders ── */
+  .border-slate-700    { border-color: #99f6e4 !important; } /* teal-200 */
+  .border-slate-700\/60{ border-color: rgba(153,246,228,0.6) !important; }
+  .border-slate-600    { border-color: #5eead4 !important; } /* teal-300 */
+
+  /* ── Primary — emerald ── */
+  .bg-green-600  { background-color: #10b981 !important; }
+  .bg-green-700  { background-color: #059669 !important; }
+  .bg-green-500  { background-color: #10b981 !important; }
+  .bg-emerald-600{ background-color: #059669 !important; }
+  .bg-emerald-700{ background-color: #047857 !important; }
+
+  .hover\:bg-green-700:hover  { background-color: #059669 !important; }
+  .hover\:bg-green-600:hover  { background-color: #10b981 !important; }
+  .hover\:bg-emerald-700:hover{ background-color: #047857 !important; }
+
+  .text-green-400 { color: #059669 !important; }
+  .text-green-300 { color: #10b981 !important; }
+  .text-green-500 { color: #047857 !important; }
+
+  .border-green-500     { border-color: #10b981 !important; }
+  .border-green-500\/25 { border-color: rgba(16,185,129,0.25) !important; }
+  .border-green-500\/30 { border-color: rgba(16,185,129,0.3)  !important; }
+
+  .ring-green-500              { --tw-ring-color: #10b981 !important; }
+  .focus\:ring-green-500:focus { --tw-ring-color: #10b981 !important; }
+
+  .accent-green-500 { accent-color: #10b981 !important; }
+
+  /* Green tint sections */
+  .bg-green-900\/40 { background-color: rgba(209,250,229,0.6) !important; }
+  .bg-green-900\/30 { background-color: rgba(209,250,229,0.4) !important; }
+  .bg-green-900\/20 { background-color: rgba(209,250,229,0.3) !important; }
+  .bg-green-900\/10 { background-color: rgba(209,250,229,0.2) !important; }
+
+  .border-green-700\/50 { border-color: rgba(16,185,129,0.5) !important; }
+  .border-green-700\/40 { border-color: rgba(16,185,129,0.4) !important; }
+
+  /* ── Accent — teal ── */
+  .bg-teal-400    { background-color: #2dd4bf !important; }
+  .text-teal-400  { color: #0d9488 !important; }
+  .border-teal-400{ border-color: #2dd4bf !important; }
+
+  /* ── Active nav state ── */
+  .bg-green-500\/15 { background-color: rgba(16,185,129,0.15) !important; }
+
+  /* ── Warning — amber ── */
+  .bg-amber-900\/40   { background-color: rgba(254,243,199,0.8) !important; }
+  .border-amber-500   { border-color: #f59e0b !important; }
+  .text-amber-400     { color: #d97706 !important; }
+  .text-amber-300     { color: #f59e0b !important; }
+  .bg-amber-600       { background-color: #d97706 !important; }
+  .hover\:bg-amber-700:hover { background-color: #b45309 !important; }
+
+  /* ── Danger — red (unchanged) ── */
+  .bg-red-900\/30   { background-color: rgba(254,226,226,0.8) !important; }
+  .border-red-700\/40{ border-color: rgba(239,68,68,0.4) !important; }
+  .text-red-400     { color: #dc2626 !important; }
+  .text-red-300     { color: #ef4444 !important; }
+  .bg-red-600       { background-color: #ef4444 !important; }
+  .hover\:bg-red-700:hover { background-color: #dc2626 !important; }
+  .hover\:bg-red-500\/10:hover { background-color: rgba(239,68,68,0.1) !important; }
+
+  /* ── Blue (workouts/stats) ── */
+  .bg-blue-600  { background-color: #0891b2 !important; }
+  .bg-blue-700  { background-color: #0e7490 !important; }
+  .hover\:bg-blue-700:hover { background-color: #0e7490 !important; }
+  .text-blue-400{ color: #0891b2 !important; }
+  .text-blue-500{ color: #0e7490 !important; }
+  .bg-blue-500  { background-color: #0891b2 !important; }
+
+  /* ── Purple (nutrition) ── */
+  .bg-purple-600  { background-color: #7c3aed !important; }
+  .hover\:bg-purple-700:hover { background-color: #6d28d9 !important; }
+
+  /* ── Cyan (progress) ── */
+  .border-cyan-500      { border-color: #2dd4bf !important; }
+  .hover\:border-cyan-400:hover { border-color: #5eead4 !important; }
+  .text-cyan-400        { color: #0d9488 !important; }
+
+  /* ── Input backgrounds ── */
+  .bg-slate-700.border-slate-600 {
+    background-color: #f0fdfa !important;
+    border-color:     #99f6e4 !important;
+    color:            #042f2e !important;
+  }
+
+  /* ── Hover states on nav/sidebar ── */
+  .hover\:bg-slate-800:hover { background-color: #f0fdfa !important; }
+  .hover\:text-slate-100:hover { color: #042f2e !important; }
+
+  /* ── Gradient backgrounds on promo banners ── */
+  .from-green-900\/40.to-emerald-900\/40 {
+    background: linear-gradient(to right, rgba(209,250,229,0.5), rgba(167,243,208,0.5)) !important;
+  }
+  .from-amber-900\/40.to-orange-900\/40 {
+    background: linear-gradient(to right, rgba(254,243,199,0.6), rgba(254,215,170,0.6)) !important;
+  }
+  .from-cyan-900\/20.to-cyan-700\/40 {
+    background: linear-gradient(to right, rgba(207,250,254,0.4), rgba(165,243,252,0.4)) !important;
+  }
+
+  /* ── Shadow on cards ── */
+  .shadow-lg  { box-shadow: 0 4px 16px rgba(15,118,110,0.12) !important; }
+  .shadow-2xl { box-shadow: 0 8px 32px rgba(15,118,110,0.18) !important; }
+}
+
+/* ─── Animations ───────────────────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+
+.animate-fade-in  { animation: fade-in  0.3s ease forwards; }
+.animate-slide-in { animation: slide-in 0.3s ease forwards; }
+
+/* ─── Dark theme (toggled by Settings page via html.dark class) ────────────── */
+html.dark body {
+  background-color: #0f172a;
+  color:            #f1f5f9;
+}
+
+html.dark ::-webkit-scrollbar-track { background: #0f172a; }
+html.dark ::-webkit-scrollbar-thumb { background: #334155; }

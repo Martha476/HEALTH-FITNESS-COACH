@@ -1,0 +1,23 @@
+{
+  "welcome": "Welcome to Your AI Fitness Coach!",
+  "login": "Login",
+  "register": "Register",
+  "dashboard": "Dashboard",
+  "profile": "Profile",
+  "settings": "Settings",
+  "logout": "Logout",
+  "chat": "Chat",
+  "save": "Save",
+  "cancel": "Cancel",
+  "language": "Language",
+  "ai_coach": "AI Coach",
+  "feedback": "Feedback",
+  "update": "Update",
+  "submit": "Submit",
+  "edit": "Edit",
+  "delete": "Delete",
+  "next": "Next",
+  "previous": "Previous",
+  "send": "Send",
+  "type_message": "Type your message..."
+}

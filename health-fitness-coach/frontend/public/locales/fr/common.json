@@ -1,0 +1,23 @@
+{
+  "welcome": "Bienvenue chez votre coach IA !",
+  "login": "Connexion",
+  "register": "S'inscrire",
+  "dashboard": "Tableau de bord",
+  "profile": "Profil",
+  "settings": "Paramètres",
+  "logout": "Déconnexion",
+  "chat": "Chat",
+  "save": "Enregistrer",
+  "cancel": "Annuler",
+  "language": "Langue",
+  "ai_coach": "Coach IA",
+  "feedback": "Retour",
+  "update": "Mettre à jour",
+  "submit": "Soumettre",
+  "edit": "Éditer",
+  "delete": "Supprimer",
+  "next": "Suivant",
+  "previous": "Précédent",
+  "send": "Envoyer",
+  "type_message": "Tapez votre message..."
+}
