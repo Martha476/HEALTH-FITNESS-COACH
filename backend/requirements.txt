@@ -15,7 +15,7 @@ gotrue==2.4.1
 httpx==0.24.1
 storage3==0.7.0
 realtime==1.0.6
-postgrest==0.16.1
+postgrest==0.15.0
 
 # ── Auth & Security ──────────────────────────────────
 python-jose[cryptography]==3.3.0
