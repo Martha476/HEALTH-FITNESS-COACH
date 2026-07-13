@@ -69,10 +69,15 @@ SECRET_KEY                  = os.getenv("JWT_SECRET_KEY", "fitness-coach-secret-
 ALGORITHM                   = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
-# Google OAuth Configuration - FIXED: Use backend port 8000, not frontend port 3000
+# Google OAuth Configuration
 GOOGLE_CLIENT_ID     = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_REDIRECT_URI  = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback")
+
+# Frontend URL — used to build redirect links back to the SPA after auth.
+# Reads from the environment so production (Vercel) and local dev (localhost:3000)
+# both work correctly without code changes.
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
 
 security = HTTPBearer(auto_error=False)
 
@@ -219,7 +224,8 @@ async def google_config_check():
         "redirect_uri": GOOGLE_REDIRECT_URI,
         "client_id_prefix": GOOGLE_CLIENT_ID[:20] if GOOGLE_CLIENT_ID else "missing",
         "has_secret": bool(GOOGLE_CLIENT_SECRET),
-        "full_redirect_uri": GOOGLE_REDIRECT_URI
+        "full_redirect_uri": GOOGLE_REDIRECT_URI,
+        "frontend_url": FRONTEND_URL,
     }
 
 @router.get("/google")
@@ -275,12 +281,12 @@ async def google_callback(
     
     if error:
         logger.error(f"OAuth error from Google: {error}")
-        frontend_url = f"http://localhost:3000/auth/callback?error={error}"
+        frontend_url = f"{FRONTEND_URL}/auth/callback?error={error}"
         return RedirectResponse(url=frontend_url)
     
     if not code:
         logger.error("No code received in callback")
-        frontend_url = "http://localhost:3000/auth/callback?error=No+authorization+code"
+        frontend_url = f"{FRONTEND_URL}/auth/callback?error=No+authorization+code"
         return RedirectResponse(url=frontend_url)
     
     logger.info(f"Code received: {code[:50]}...")
@@ -303,7 +309,7 @@ async def google_callback(
         
         if response.status_code != 200:
             logger.error(f"Token exchange failed: {response.text}")
-            frontend_url = f"http://localhost:3000/auth/callback?error=Token+exchange+failed"
+            frontend_url = f"{FRONTEND_URL}/auth/callback?error=Token+exchange+failed"
             return RedirectResponse(url=frontend_url)
         
         tokens = response.json()
@@ -316,7 +322,7 @@ async def google_callback(
         
         if user_response.status_code != 200:
             logger.error(f"User info failed: {user_response.text}")
-            frontend_url = f"http://localhost:3000/auth/callback?error=Failed+to+get+user+info"
+            frontend_url = f"{FRONTEND_URL}/auth/callback?error=Failed+to+get+user+info"
             return RedirectResponse(url=frontend_url)
         
         google_user = user_response.json()
@@ -370,14 +376,14 @@ async def google_callback(
         access_token = create_access_token(user["id"], user["email"])
         logger.info(f"JWT issued for {user['email']}")
 
-        frontend_url = f"http://localhost:3000/auth/callback?token={access_token}"
+        frontend_url = f"{FRONTEND_URL}/auth/callback?token={access_token}"
         return RedirectResponse(url=frontend_url)
         
     except Exception as e:
         logger.error(f"Exception in callback: {str(e)}")
         import traceback
         traceback.print_exc()
-        frontend_url = f"http://localhost:3000/auth/callback?error={str(e)}"
+        frontend_url = f"{FRONTEND_URL}/auth/callback?error={str(e)}"
         return RedirectResponse(url=frontend_url)
 
 
@@ -397,10 +403,6 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  JWT HELPERS
-# ═════════════════════════════════════════════════════════════════════════════
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  JWT HELPERS
@@ -609,10 +611,6 @@ def resend_verification_email(request: ResendVerificationEmailRequest) -> dict:
 
     return {"message": f"Verification email sent to {email}. Check your inbox.", "success": True, "email": email}
 
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  CURRENT USER DEPENDENCY
-# ═════════════════════════════════════════════════════════════════════════════
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  CURRENT USER DEPENDENCY
@@ -832,7 +830,7 @@ def forgot_password(request: ForgotPasswordRequest) -> dict:
     try:
         supabase.auth.reset_password_email(
             email,
-            options={"redirect_to": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/reset-password"},
+            options={"redirect_to": f"{FRONTEND_URL}/reset-password"},
         )
     except Exception:
         pass
@@ -929,6 +927,3 @@ def delete_account(request: DeleteAccountRequest) -> dict:
 @router.post("/send-verification")
 def send_verification_email_route(request: SendVerificationEmailRequest) -> dict:
     return send_verification_email(request)
-
-
-# ═════════════════════════════
